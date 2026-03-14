@@ -22,21 +22,20 @@ router.post("/", async (req, res) => {
 
     const topTours = rawTours.slice(0, 3);
 
-    const toursWithDescriptions = await Promise.all(
-      topTours.map(async (tour) => {
-        const { aiDescription, aiRecommendation, aiProvider } = await generateTourDescription(
-          tour,
-          departureCity,
-          tour.nights
-        );
-        return {
-          ...tour,
-          aiDescription,
-          aiRecommendation,
-          aiProvider,
-        };
-      })
-    );
+    const toursWithDescriptions = [];
+    for (const tour of topTours) {
+      const { aiDescription, aiRecommendation, aiProvider } = await generateTourDescription(
+        tour,
+        departureCity,
+        tour.nights
+      );
+      toursWithDescriptions.push({
+        ...tour,
+        aiDescription,
+        aiRecommendation,
+        aiProvider,
+      });
+    }
 
     res.json({
       tours: toursWithDescriptions,
