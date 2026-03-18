@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Plane, HelpCircle, User, LogOut, Bookmark } from "lucide-react";
+import { Plane, HelpCircle, User, LogOut, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@workspace/replit-auth-web";
 
@@ -53,6 +53,13 @@ export function Navbar() {
               </a>
             </>
           )}
+          <Link href="/booking" className={cn(
+            "flex items-center gap-1.5 text-sm font-medium transition-colors",
+            location === "/booking" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+          )}>
+            <CreditCard className="w-4 h-4" />
+            Бронирование
+          </Link>
           <Link href="/help" className={cn(
             "flex items-center gap-1.5 text-sm font-medium transition-colors",
             location === "/help" ? "text-primary" : "text-muted-foreground hover:text-foreground"
