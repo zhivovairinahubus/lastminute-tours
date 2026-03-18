@@ -23,6 +23,7 @@ export interface RawTour {
   totalPrice: number;
   mealType: string;
   imageUrl: string;
+  bookingUrl: string;
   operatorName?: string;
 }
 
@@ -44,62 +45,87 @@ const DESTINATION_IMAGES: Record<string, string> = {
   "Индонезия": "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800&q=80",
 };
 
-const HOTELS_BY_COUNTRY: Record<string, { hotel: string; city: string; stars: number; operator: string }[]> = {
+const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1500835556837-99ac94a94552?w=800&q=80";
+
+const COUNTRY_ISO_TO_RU: Record<string, string> = {
+  TR: "Турция", EG: "Египет", TH: "Таиланд", AE: "ОАЭ",
+  GR: "Греция", CY: "Кипр", ES: "Испания", ME: "Черногория",
+  TN: "Тунис", MV: "Мальдивы", CU: "Куба", IT: "Италия",
+  GE: "Грузия", IL: "Израиль", ID: "Индонезия",
+};
+
+const COUNTRY_RU_TO_SLUG: Record<string, string> = {
+  "Турция": "turkey", "Египет": "egypt", "Таиланд": "thailand",
+  "ОАЭ": "uae", "Греция": "greece", "Кипр": "cyprus",
+  "Испания": "spain", "Черногория": "montenegro", "Тунис": "tunisia",
+  "Мальдивы": "maldives", "Куба": "cuba", "Италия": "italy",
+  "Грузия": "georgia", "Израиль": "israel", "Индонезия": "indonesia",
+};
+
+const HOTELS_BY_COUNTRY: Record<string, { hotel: string; city: string; stars: number; operator: string; slug: string }[]> = {
   "Турция": [
-    { hotel: "Delphin Imperial Lara", city: "Анталья", stars: 5, operator: "Tez Tour" },
-    { hotel: "Akka Alinda Hotel", city: "Кемер", stars: 5, operator: "TUI" },
-    { hotel: "Bellis Deluxe Hotel", city: "Белек", stars: 5, operator: "Coral Travel" },
-    { hotel: "Crystal Sunrise Queen", city: "Сиде", stars: 5, operator: "Pegas Touristik" },
-    { hotel: "Club Hotel Sera", city: "Анталья", stars: 5, operator: "Tez Tour" },
-    { hotel: "Rixos Premium Tekirova", city: "Кемер", stars: 5, operator: "TUI" },
-    { hotel: "Selectum Luxury Resort", city: "Белек", stars: 5, operator: "Coral Travel" },
+    { hotel: "Delphin Imperial Lara", city: "Анталья", stars: 5, operator: "Tez Tour", slug: "delphin-imperial-lara" },
+    { hotel: "Akka Alinda Hotel", city: "Кемер", stars: 5, operator: "TUI", slug: "akka-alinda-hotel" },
+    { hotel: "Bellis Deluxe Hotel", city: "Белек", stars: 5, operator: "Coral Travel", slug: "bellis-deluxe-hotel" },
+    { hotel: "Crystal Sunrise Queen", city: "Сиде", stars: 5, operator: "Pegas Touristik", slug: "crystal-sunrise-queen" },
+    { hotel: "Club Hotel Sera", city: "Анталья", stars: 5, operator: "Tez Tour", slug: "club-hotel-sera" },
+    { hotel: "Rixos Premium Tekirova", city: "Кемер", stars: 5, operator: "TUI", slug: "rixos-premium-tekirova" },
+    { hotel: "Selectum Luxury Resort", city: "Белек", stars: 5, operator: "Coral Travel", slug: "selectum-luxury-resort" },
   ],
   "Египет": [
-    { hotel: "Hilton Hurghada Plaza", city: "Хургада", stars: 5, operator: "Tez Tour" },
-    { hotel: "Stella Di Mare Beach", city: "Шарм-эль-Шейх", stars: 5, operator: "Pegas Touristik" },
-    { hotel: "Pickalbatros Palace", city: "Хургада", stars: 5, operator: "Coral Travel" },
-    { hotel: "Jaz Mirabel Beach", city: "Шарм-эль-Шейх", stars: 5, operator: "TUI" },
-    { hotel: "Titanic Palace", city: "Хургада", stars: 5, operator: "Pegas Touristik" },
+    { hotel: "Hilton Hurghada Plaza", city: "Хургада", stars: 5, operator: "Tez Tour", slug: "hilton-hurghada-plaza" },
+    { hotel: "Stella Di Mare Beach", city: "Шарм-эль-Шейх", stars: 5, operator: "Pegas Touristik", slug: "stella-di-mare-beach" },
+    { hotel: "Pickalbatros Palace", city: "Хургада", stars: 5, operator: "Coral Travel", slug: "pickalbatros-palace" },
+    { hotel: "Jaz Mirabel Beach", city: "Шарм-эль-Шейх", stars: 5, operator: "TUI", slug: "jaz-mirabel-beach" },
+    { hotel: "Titanic Palace", city: "Хургада", stars: 5, operator: "Pegas Touristik", slug: "titanic-palace" },
   ],
   "Таиланд": [
-    { hotel: "Amari Pattaya", city: "Паттайя", stars: 4, operator: "TUI" },
-    { hotel: "Centara Grand Beach", city: "Самуи", stars: 5, operator: "Coral Travel" },
-    { hotel: "Phuket Graceland Resort", city: "Пхукет", stars: 5, operator: "Tez Tour" },
-    { hotel: "Holiday Inn Pattaya", city: "Паттайя", stars: 4, operator: "Pegas Touristik" },
+    { hotel: "Amari Pattaya", city: "Паттайя", stars: 4, operator: "TUI", slug: "amari-pattaya" },
+    { hotel: "Centara Grand Beach", city: "Самуи", stars: 5, operator: "Coral Travel", slug: "centara-grand-beach" },
+    { hotel: "Phuket Graceland Resort", city: "Пхукет", stars: 5, operator: "Tez Tour", slug: "phuket-graceland-resort" },
+    { hotel: "Holiday Inn Pattaya", city: "Паттайя", stars: 4, operator: "Pegas Touristik", slug: "holiday-inn-pattaya" },
   ],
   "ОАЭ": [
-    { hotel: "Jumeirah Beach Hotel", city: "Дубай", stars: 5, operator: "TUI" },
-    { hotel: "Atlantis The Palm", city: "Дубай", stars: 5, operator: "Tez Tour" },
-    { hotel: "Rixos Premium Dubai", city: "Дубай", stars: 5, operator: "Coral Travel" },
+    { hotel: "Jumeirah Beach Hotel", city: "Дубай", stars: 5, operator: "TUI", slug: "jumeirah-beach-hotel" },
+    { hotel: "Atlantis The Palm", city: "Дубай", stars: 5, operator: "Tez Tour", slug: "atlantis-the-palm" },
+    { hotel: "Rixos Premium Dubai", city: "Дубай", stars: 5, operator: "Coral Travel", slug: "rixos-premium-dubai" },
   ],
   "Греция": [
-    { hotel: "Ikos Aria", city: "Родос", stars: 5, operator: "TUI" },
-    { hotel: "Aldemar Knossos Royal", city: "Крит", stars: 5, operator: "Coral Travel" },
-    { hotel: "Mitsis Alila Resort", city: "Родос", stars: 5, operator: "Pegas Touristik" },
+    { hotel: "Ikos Aria", city: "Родос", stars: 5, operator: "TUI", slug: "ikos-aria" },
+    { hotel: "Aldemar Knossos Royal", city: "Крит", stars: 5, operator: "Coral Travel", slug: "aldemar-knossos-royal" },
+    { hotel: "Mitsis Alila Resort", city: "Родос", stars: 5, operator: "Pegas Touristik", slug: "mitsis-alila-resort" },
   ],
   "Кипр": [
-    { hotel: "Amavi Hotel", city: "Пафос", stars: 5, operator: "TUI" },
-    { hotel: "Olympic Lagoon Resort", city: "Айя-Напа", stars: 4, operator: "Coral Travel" },
+    { hotel: "Amavi Hotel", city: "Пафос", stars: 5, operator: "TUI", slug: "amavi-hotel" },
+    { hotel: "Olympic Lagoon Resort", city: "Айя-Напа", stars: 4, operator: "Coral Travel", slug: "olympic-lagoon-resort" },
   ],
   "Испания": [
-    { hotel: "Iberostar Gran Hotel", city: "Тенерифе", stars: 5, operator: "TUI" },
-    { hotel: "Lopesan Costa Meloneras", city: "Гран-Канария", stars: 5, operator: "Coral Travel" },
+    { hotel: "Iberostar Gran Hotel", city: "Тенерифе", stars: 5, operator: "TUI", slug: "iberostar-gran-hotel" },
+    { hotel: "Lopesan Costa Meloneras", city: "Гран-Канария", stars: 5, operator: "Coral Travel", slug: "lopesan-costa-meloneras" },
   ],
   "Черногория": [
-    { hotel: "Dukley Hotel & Resort", city: "Будва", stars: 5, operator: "Pegas Touristik" },
-    { hotel: "Splendid Spa Resort", city: "Бечичи", stars: 5, operator: "TUI" },
+    { hotel: "Dukley Hotel & Resort", city: "Будва", stars: 5, operator: "Pegas Touristik", slug: "dukley-hotel-resort" },
+    { hotel: "Splendid Spa Resort", city: "Бечичи", stars: 5, operator: "TUI", slug: "splendid-spa-resort" },
   ],
   "Тунис": [
-    { hotel: "Diar Lemdina", city: "Хаммамет", stars: 5, operator: "Coral Travel" },
-    { hotel: "Iberostar Averroes", city: "Хаммамет", stars: 4, operator: "TUI" },
+    { hotel: "Diar Lemdina", city: "Хаммамет", stars: 5, operator: "Coral Travel", slug: "diar-lemdina" },
+    { hotel: "Iberostar Averroes", city: "Хаммамет", stars: 4, operator: "TUI", slug: "iberostar-averroes" },
   ],
   "Грузия": [
-    { hotel: "Sheraton Batumi Hotel", city: "Батуми", stars: 5, operator: "Pegas Touristik" },
-    { hotel: "Radisson Blu Hotel Batumi", city: "Батуми", stars: 5, operator: "TUI" },
+    { hotel: "Sheraton Batumi Hotel", city: "Батуми", stars: 5, operator: "Pegas Touristik", slug: "sheraton-batumi" },
+    { hotel: "Radisson Blu Hotel Batumi", city: "Батуми", stars: 5, operator: "TUI", slug: "radisson-blu-batumi" },
   ],
   "Индонезия": [
-    { hotel: "Ayodya Resort Bali", city: "Бали", stars: 5, operator: "TUI" },
-    { hotel: "The Laguna Bali", city: "Бали", stars: 5, operator: "Coral Travel" },
+    { hotel: "Ayodya Resort Bali", city: "Бали", stars: 5, operator: "TUI", slug: "ayodya-resort-bali" },
+    { hotel: "The Laguna Bali", city: "Бали", stars: 5, operator: "Coral Travel", slug: "the-laguna-bali" },
+  ],
+  "Мальдивы": [
+    { hotel: "Kurumba Maldives", city: "Атолл Северный Мале", stars: 5, operator: "TUI", slug: "kurumba-maldives" },
+    { hotel: "Kanuhura Maldives", city: "Атолл Лавияни", stars: 5, operator: "Coral Travel", slug: "kanuhura-maldives" },
+  ],
+  "Израиль": [
+    { hotel: "Dan Eilat Hotel", city: "Эйлат", stars: 5, operator: "Tez Tour", slug: "dan-eilat-hotel" },
+    { hotel: "Isrotel Royal Beach", city: "Эйлат", stars: 5, operator: "TUI", slug: "isrotel-royal-beach" },
   ],
 };
 
@@ -119,6 +145,19 @@ function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
+function formatDateDDMMYYYY(date: Date): string {
+  const d = date.getDate().toString().padStart(2, "0");
+  const m = (date.getMonth() + 1).toString().padStart(2, "0");
+  const y = date.getFullYear();
+  return `${d}.${m}.${y}`;
+}
+
+function addDaysToISO(isoDate: string, days: number): string {
+  const date = new Date(isoDate);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().split("T")[0];
+}
+
 async function getLevelTravelToken(): Promise<string | null> {
   try {
     const setting = await db.select()
@@ -131,6 +170,30 @@ async function getLevelTravelToken(): Promise<string | null> {
   }
 }
 
+function getCityNameEn(cityNameRu: string): string {
+  const mapping: Record<string, string> = {
+    "Москва": "Moscow",
+    "Санкт-Петербург": "Saint Petersburg",
+    "Екатеринбург": "Yekaterinburg",
+    "Новосибирск": "Novosibirsk",
+    "Казань": "Kazan",
+    "Нижний Новгород": "Nizhny Novgorod",
+    "Челябинск": "Chelyabinsk",
+    "Самара": "Samara",
+    "Уфа": "Ufa",
+    "Ростов-на-Дону": "Rostov-on-Don",
+    "Краснодар": "Krasnodar",
+    "Пермь": "Perm",
+    "Красноярск": "Krasnoyarsk",
+    "Воронеж": "Voronezh",
+    "Тюмень": "Tyumen",
+  };
+  return mapping[cityNameRu] || cityNameRu;
+}
+
+const SEARCH_COUNTRIES = ["TR", "EG", "TH", "AE", "GR", "CY", "ES", "TN", "GE", "ID"];
+const FINAL_STATUSES = new Set(["completed", "no_results", "failed", "cached", "skipped", "all_filtered"]);
+
 async function fetchRealLevelTravelTours(
   token: string,
   departureCityName: string,
@@ -138,68 +201,168 @@ async function fetchRealLevelTravelTours(
   adults: number
 ): Promise<RawTour[] | null> {
   try {
+    const fromCityEn = getCityNameEn(departureCityName);
     const today = new Date();
-    const maxDate = new Date();
-    maxDate.setDate(today.getDate() + 7);
+    const plus7 = new Date(today.getTime() + 7 * 86400000);
+    const plus5 = new Date(today.getTime() + 5 * 86400000);
+    const plus17 = new Date(today.getTime() + 17 * 86400000);
 
-    const fromDate = today.toISOString().split("T")[0];
-    const toDate = maxDate.toISOString().split("T")[0];
+    const startDateFrom = formatDateDDMMYYYY(today);
+    const startDateTill = formatDateDDMMYYYY(plus7);
+    const endDateFrom = formatDateDDMMYYYY(plus5);
+    const endDateTill = formatDateDDMMYYYY(plus17);
 
-    const url = `https://api.level.travel/v3/packages?` + new URLSearchParams({
-      from: departureCityName,
-      date_from: fromDate,
-      date_to: toDate,
-      adults: adults.toString(),
-      price_max: budget.toString(),
-      currency: "RUB",
-      per_page: "20",
-      order: "price",
-    });
+    const headers = {
+      "Authorization": `Token token="${token}"`,
+      "Accept": "application/vnd.leveltravel.v3.7",
+      "Content-Type": "application/json",
+    };
 
-    const response = await fetch(url, {
-      headers: {
-        "Authorization": `Token ${token}`,
-        "Accept": "application/vnd.level.travel.v3+json",
-        "Content-Type": "application/json",
-      },
-      signal: AbortSignal.timeout(10000),
-    });
+    // 1. Enqueue searches for multiple popular countries in parallel
+    const enqueueResults = await Promise.allSettled(
+      SEARCH_COUNTRIES.map(async (countryIso) => {
+        const params = new URLSearchParams({
+          from_city: fromCityEn,
+          to_country: countryIso,
+          adults: adults.toString(),
+          start_date_from: startDateFrom,
+          start_date_till: startDateTill,
+          end_date_from: endDateFrom,
+          end_date_till: endDateTill,
+          search_type: "package",
+        });
+        const resp = await fetch(
+          `https://api.level.travel/search/enqueue?${params}`,
+          { headers, signal: AbortSignal.timeout(8000) }
+        );
+        if (!resp.ok) return null;
+        const data = await resp.json() as { success: boolean; request_id?: string };
+        if (!data.success || !data.request_id) return null;
+        return { requestId: data.request_id, countryIso };
+      })
+    );
 
-    if (!response.ok) return null;
+    const activeSearches = enqueueResults
+      .filter((r): r is PromiseFulfilledResult<{ requestId: string; countryIso: string } | null> => r.status === "fulfilled")
+      .map(r => r.value)
+      .filter((v): v is { requestId: string; countryIso: string } => v !== null);
 
-    const data = await response.json() as { packages?: Array<{
-      id: string;
-      hotel: { name: string; stars: number; country: { name: string }; resort: { name: string } };
-      price: number;
-      checkin: string;
-      checkout: string;
-      nights: number;
-      meal: string;
-      operator: { name: string };
-    }> };
-    
-    if (!data.packages?.length) return null;
+    if (activeSearches.length === 0) return null;
 
-    return data.packages.map((pkg) => ({
-      id: String(pkg.id),
-      destination: `${pkg.hotel.country.name}, ${pkg.hotel.resort.name}`,
-      country: pkg.hotel.country.name,
-      city: pkg.hotel.resort.name,
-      hotel: pkg.hotel.name,
-      stars: pkg.hotel.stars,
-      departureDate: pkg.checkin,
-      returnDate: pkg.checkout,
-      nights: pkg.nights,
-      price: Math.round(pkg.price / adults),
-      totalPrice: pkg.price,
-      mealType: pkg.meal,
-      imageUrl: DESTINATION_IMAGES[pkg.hotel.country.name] || "https://images.unsplash.com/photo-1500835556837-99ac94a94552?w=800&q=80",
-      operatorName: pkg.operator.name,
-    }));
+    // 2. Poll status for all searches (wait max 20s, check every 2s)
+    const startTime = Date.now();
+    const doneSearches = new Set<string>();
+
+    while (doneSearches.size < activeSearches.length && Date.now() - startTime < 20000) {
+      await new Promise(r => setTimeout(r, 2000));
+
+      await Promise.allSettled(
+        activeSearches
+          .filter(s => !doneSearches.has(s.requestId))
+          .map(async (search) => {
+            const params = new URLSearchParams({ request_id: search.requestId, show_size: "true" });
+            const resp = await fetch(
+              `https://api.level.travel/search/status?${params}`,
+              { headers, signal: AbortSignal.timeout(5000) }
+            );
+            if (!resp.ok) { doneSearches.add(search.requestId); return; }
+            const data = await resp.json() as { status?: Record<string, string>; success?: boolean };
+            if (!data.success || !data.status) { doneSearches.add(search.requestId); return; }
+            const allFinal = Object.values(data.status).every(s => FINAL_STATUSES.has(s));
+            if (allFinal) doneSearches.add(search.requestId);
+          })
+      );
+    }
+
+    // 3. Fetch hotels for all completed searches in parallel
+    const allTours: RawTour[] = [];
+
+    await Promise.allSettled(
+      activeSearches.map(async (search) => {
+        try {
+          const params = new URLSearchParams({
+            request_id: search.requestId,
+            filter_price_max: budget.toString(),
+            sort_by: "price",
+            page_limit: "5",
+            page_number: "1",
+          });
+          const resp = await fetch(
+            `https://api.level.travel/search/get_grouped_hotels?${params}`,
+            { headers, signal: AbortSignal.timeout(10000) }
+          );
+          if (!resp.ok) return;
+
+          const data = await resp.json() as {
+            success: boolean;
+            hotels?: Array<{
+              hotel: {
+                id: number;
+                name: string;
+                stars: number;
+                city: string;
+                region_name: string;
+                link: string;
+                images: Array<{ x500: string }>;
+              };
+              min_price: number;
+              min_price_nights: number;
+              dates: Record<string, number>;
+              tour_id: string;
+            }>;
+          };
+
+          if (!data.success || !data.hotels?.length) return;
+
+          const countryRu = COUNTRY_ISO_TO_RU[search.countryIso] || search.countryIso;
+
+          for (const h of data.hotels) {
+            const departureDates = Object.keys(h.dates);
+            const departureDate = departureDates[0] || getDateRange(1);
+            const nights = h.min_price_nights || 7;
+            const returnDate = addDaysToISO(departureDate, nights);
+            const totalPrice = h.min_price;
+            const pricePerPerson = Math.round(totalPrice / adults);
+
+            if (pricePerPerson > budget) continue;
+
+            allTours.push({
+              id: h.tour_id || `${h.hotel.id}-${departureDate}`,
+              destination: `${countryRu}, ${h.hotel.region_name || h.hotel.city}`,
+              country: countryRu,
+              city: h.hotel.region_name || h.hotel.city,
+              hotel: h.hotel.name,
+              stars: h.hotel.stars || 3,
+              departureDate,
+              returnDate,
+              nights,
+              price: pricePerPerson,
+              totalPrice,
+              mealType: "Уточняется",
+              imageUrl: h.hotel.images?.[0]?.x500 || DESTINATION_IMAGES[countryRu] || DEFAULT_IMAGE,
+              bookingUrl: `https://level.travel${h.hotel.link}`,
+              operatorName: "Level.Travel",
+            });
+          }
+        } catch (err) {
+          console.warn(`Level.Travel get_grouped_hotels error for ${search.countryIso}:`, err);
+        }
+      })
+    );
+
+    if (allTours.length === 0) return null;
+
+    allTours.sort((a, b) => a.price - b.price);
+    return allTours;
   } catch (err) {
     console.error("Level.Travel API error:", err);
     return null;
   }
+}
+
+function buildDemoBookingUrl(country: string, hotelSlug: string): string {
+  const countrySlug = COUNTRY_RU_TO_SLUG[country] || country.toLowerCase().replace(/\s/g, "-");
+  return `https://level.travel/tours/${countrySlug}?hotel=${hotelSlug}`;
 }
 
 function generateDemoTours(departureCityName: string, budget: number, adults: number): RawTour[] {
@@ -221,7 +384,7 @@ function generateDemoTours(departureCityName: string, budget: number, adults: nu
 
       if (pricePerPerson <= budget) {
         allTours.push({
-          id: `${country}-${hotelInfo.hotel}-${departureDate}`.replace(/[\s&]/g, "-"),
+          id: `${country}-${hotelInfo.slug}-${departureDate}`.replace(/[\s&]/g, "-"),
           destination: `${country}, ${hotelInfo.city}`,
           country,
           city: hotelInfo.city,
@@ -233,7 +396,8 @@ function generateDemoTours(departureCityName: string, budget: number, adults: nu
           price: pricePerPerson,
           totalPrice,
           mealType: MEAL_TYPES[randomInt(0, MEAL_TYPES.length - 1)],
-          imageUrl: DESTINATION_IMAGES[country] || "https://images.unsplash.com/photo-1500835556837-99ac94a94552?w=800&q=80",
+          imageUrl: DESTINATION_IMAGES[country] || DEFAULT_IMAGE,
+          bookingUrl: buildDemoBookingUrl(country, hotelInfo.slug),
           operatorName: hotelInfo.operator,
         });
       }
@@ -262,12 +426,33 @@ export async function searchLevelTravelTours(
   return { tours: demoTours, source: "demo" };
 }
 
+const TOUR_ANGLES = [
+  {
+    focus: "пляж и релакс",
+    instruction: "Опиши пляжный отдых, море, солнце, инфраструктуру отеля. Упомяни уникальные особенности пляжа или бассейна. Начни с живой фразы об отдыхе.",
+    verdict_hint: "Акцент на том, стоит ли брать именно сейчас из-за цены или сезона.",
+  },
+  {
+    focus: "культура, атмосфера и еда",
+    instruction: "Опиши местный колорит, что можно увидеть рядом с отелем, местную кухню или уличную жизнь. Начни с неожиданного факта или атмосферного описания места.",
+    verdict_hint: "Акцент на уникальности направления — это стоит увидеть хотя бы раз.",
+  },
+  {
+    focus: "соотношение цена/качество и впечатления",
+    instruction: "Опиши почему это предложение — выгодная сделка. Что получит турист за эти деньги, что включено, какие развлечения и активности доступны. Начни с конкретного преимущества тура.",
+    verdict_hint: "Акцент на горящей цене и почему нужно принять решение быстро.",
+  },
+];
+
 export async function generateTourDescription(
   tour: RawTour,
   departureCityName: string,
-  nights: number
+  nights: number,
+  tourIndex: number = 0
 ): Promise<{ aiDescription: string; aiRecommendation: string; aiProvider: string }> {
-  const prompt = `Ты — эксперт по спонтанным путешествиям. Опиши тур кратко и вдохновляюще.
+  const angle = TOUR_ANGLES[tourIndex % TOUR_ANGLES.length];
+
+  const prompt = `Ты — эксперт по спонтанным путешествиям. Пиши по-русски, живо и вдохновляюще.
 
 Тур:
 - Откуда: ${departureCityName}
@@ -276,11 +461,15 @@ export async function generateTourDescription(
 - Питание: ${tour.mealType}
 - Ночей: ${nights}
 - Цена: ${tour.price.toLocaleString("ru-RU")} ₽/чел
+- Вылет: ${tour.departureDate}
+
+Угол описания: ${angle.focus}.
+Инструкция: ${angle.instruction}
 
 Напиши ответ в формате JSON:
 {
-  "description": "2-3 предложения: что успеете увидеть и пережить. Конкретные места, атмосфера. Не более 80 слов.",
-  "recommendation": "Одна фраза-вердикт: стоит брать прямо сейчас или нет, и почему."
+  "description": "2-3 предложения: ${angle.focus}. Конкретика, не общие слова. Максимум 75 слов.",
+  "recommendation": "Одна фраза-вердикт. ${angle.verdict_hint}"
 }
 
 Только JSON, без markdown.`;
@@ -309,7 +498,7 @@ export async function generateTourDescription(
   if (process.env.AI_INTEGRATIONS_OPENAI_BASE_URL) {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-5-mini",
+        model: "gpt-4o-mini",
         max_completion_tokens: 300,
         messages: [{ role: "user", content: prompt }],
       });
@@ -328,9 +517,15 @@ export async function generateTourDescription(
     }
   }
 
+  const staticDescriptions = [
+    `Расслабьтесь на берегу ${tour.city} — кристальная вода и ухоженный пляж ${tour.hotel} созданы для настоящего отдыха. За ${nights} ночей успеете перезарядиться и забыть о работе.`,
+    `${tour.city} — место, где история встречается с современным комфортом. ${tour.hotel} расположен в сердце курортной зоны, рядом — местные рестораны и достопримечательности.`,
+    `За ${tour.price.toLocaleString("ru-RU")} ₽ — ${nights} ночей в ${tour.stars}★ отеле с питанием. ${tour.hotel} стабильно входит в топ по отзывам: отличный сервис и инфраструктура.`,
+  ];
+
   return {
-    aiDescription: `${tour.city} встретит вас солнцем и незабываемыми впечатлениями. За ${nights} ночей успеете погрузиться в местный колорит, насладиться морем и едой.`,
-    aiRecommendation: "Отличный вариант для спонтанного отдыха — берите!",
+    aiDescription: staticDescriptions[tourIndex % staticDescriptions.length],
+    aiRecommendation: "Горящее предложение — берите прямо сейчас!",
     aiProvider: "static",
   };
 }

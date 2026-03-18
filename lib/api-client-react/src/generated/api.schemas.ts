@@ -14,7 +14,11 @@ export interface TourSearchRequest {
   departureCity: string;
   /** Maximum budget per person in rubles */
   budget: number;
-  /** Number of adults */
+  /**
+   * Number of adults (1-10)
+   * @minimum 1
+   * @maximum 10
+   */
   adults?: number;
 }
 
@@ -42,6 +46,8 @@ export interface Tour {
   aiDescription: string;
   /** Short AI verdict - стоит или нет */
   aiRecommendation: string;
+  /** URL to booking page */
+  bookingUrl?: string;
 }
 
 export interface TourSearchResponse {

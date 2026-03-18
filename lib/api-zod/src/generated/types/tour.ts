@@ -30,4 +30,6 @@ export interface Tour {
   aiDescription: string;
   /** Short AI verdict - стоит или нет */
   aiRecommendation: string;
+  /** URL to booking page */
+  bookingUrl?: string;
 }

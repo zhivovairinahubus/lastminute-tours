@@ -20,14 +20,17 @@ export const HealthCheckResponse = zod.object({
  * @summary Search last-minute tours
  */
 export const searchToursBodyAdultsDefault = 2;
+export const searchToursBodyAdultsMax = 10;
 
 export const SearchToursBody = zod.object({
   departureCity: zod.string().describe('City of departure (e.g. \"Москва\")'),
   budget: zod.number().describe("Maximum budget per person in rubles"),
   adults: zod
     .number()
+    .min(1)
+    .max(searchToursBodyAdultsMax)
     .default(searchToursBodyAdultsDefault)
-    .describe("Number of adults"),
+    .describe("Number of adults (1-10)"),
 });
 
 export const SearchToursResponse = zod.object({
@@ -54,6 +57,7 @@ export const SearchToursResponse = zod.object({
       aiRecommendation: zod
         .string()
         .describe("Short AI verdict - стоит или нет"),
+      bookingUrl: zod.string().optional().describe("URL to booking page"),
     }),
   ),
   searchId: zod.string().optional(),

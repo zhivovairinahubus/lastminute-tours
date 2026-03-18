@@ -18,16 +18,20 @@ router.post("/", async (req, res) => {
       return;
     }
 
-    const { tours: rawTours, source } = await searchLevelTravelTours(departureCity, budgetNum, adults);
+    const adultsNum = Math.max(1, Math.min(10, Number(adults) || 2));
+
+    const { tours: rawTours, source } = await searchLevelTravelTours(departureCity, budgetNum, adultsNum);
 
     const topTours = rawTours.slice(0, 3);
 
     const toursWithDescriptions = [];
-    for (const tour of topTours) {
+    for (let i = 0; i < topTours.length; i++) {
+      const tour = topTours[i];
       const { aiDescription, aiRecommendation, aiProvider } = await generateTourDescription(
         tour,
         departureCity,
-        tour.nights
+        tour.nights,
+        i
       );
       toursWithDescriptions.push({
         ...tour,

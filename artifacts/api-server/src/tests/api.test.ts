@@ -47,6 +47,7 @@ describe("Tour search", () => {
       totalPrice: number;
       mealType: string;
       imageUrl: string;
+      bookingUrl?: string;
       aiDescription?: string;
       aiRecommendation?: string;
     }>;
@@ -126,6 +127,43 @@ describe("Tour search", () => {
       expect(tour.aiDescription!.length).toBeGreaterThan(10);
     }
   });
+
+  it("Tours have bookingUrl field", () => {
+    for (const tour of toursResponse.tours) {
+      expect(tour).toHaveProperty("bookingUrl");
+      expect(typeof tour.bookingUrl).toBe("string");
+      expect(tour.bookingUrl!.length).toBeGreaterThan(5);
+    }
+  });
+
+  it("AI descriptions are different for the 3 tours", () => {
+    if (toursResponse.tours.length < 2) return;
+    const descriptions = toursResponse.tours.map(t => t.aiDescription);
+    const uniqueDescriptions = new Set(descriptions);
+    expect(uniqueDescriptions.size).toBeGreaterThan(1);
+  });
+
+  it("totalPrice equals price * adults for demo tours", () => {
+    for (const tour of toursResponse.tours) {
+      const expectedTotal = tour.price * 2;
+      expect(Math.abs(tour.totalPrice - expectedTotal)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("POST /api/tours/search with adults=1 returns correct per-person price", async () => {
+    const res = await fetch(`${BASE_URL}/api/tours/search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ departureCity: "Москва", budget: 80000, adults: 1 }),
+    });
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(Array.isArray(data.tours)).toBe(true);
+    for (const tour of data.tours) {
+      expect(tour.price).toBeLessThanOrEqual(80000);
+      expect(tour).toHaveProperty("bookingUrl");
+    }
+  }, 30000);
 
   it("POST /api/tours/search with missing city returns 400", async () => {
     const res = await fetch(`${BASE_URL}/api/tours/search`, {
