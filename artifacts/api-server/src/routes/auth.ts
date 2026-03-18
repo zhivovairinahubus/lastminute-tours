@@ -196,7 +196,7 @@ router.get("/callback", async (req: Request, res: Response) => {
   res.redirect(returnTo);
 });
 
-router.get("/logout", async (req: Request, res: Response) => {
+async function logoutHandler(req: Request, res: Response) {
   const config = await getOidcConfig();
   const origin = getOrigin(req);
 
@@ -209,7 +209,10 @@ router.get("/logout", async (req: Request, res: Response) => {
   });
 
   res.redirect(endSessionUrl.href);
-});
+}
+
+router.get("/logout", logoutHandler);
+router.get("/auth/logout", logoutHandler);
 
 router.post(
   "/mobile-auth/token-exchange",

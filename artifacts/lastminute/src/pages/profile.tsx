@@ -189,7 +189,7 @@ export default function ProfilePage() {
                 <p className="text-muted-foreground mb-6">
                   Нажмите на закладку в карточке тура, чтобы сохранить его здесь.
                 </p>
-                <a href={import.meta.env.BASE_URL as string} className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-colors">
+                <a href={String(import.meta.env.BASE_URL)} className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-colors">
                   Найти туры
                 </a>
               </div>
