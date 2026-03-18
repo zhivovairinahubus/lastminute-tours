@@ -162,6 +162,27 @@ describe("Tour search", () => {
     for (const tour of data.tours) {
       expect(tour.price).toBeLessThanOrEqual(80000);
       expect(tour).toHaveProperty("bookingUrl");
+      // For 1 adult, totalPrice should equal price
+      expect(Math.abs(tour.totalPrice - tour.price)).toBeLessThanOrEqual(1);
+    }
+  }, 30000);
+
+  it("POST /api/tours/search with adults=4 returns correct totalPrice", async () => {
+    const res = await fetch(`${BASE_URL}/api/tours/search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ departureCity: "Москва", budget: 80000, adults: 4 }),
+    });
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(Array.isArray(data.tours)).toBe(true);
+    expect(data.tours.length).toBeGreaterThan(0);
+    for (const tour of data.tours) {
+      // Per-person price must be within per-person budget
+      expect(tour.price).toBeLessThanOrEqual(80000);
+      // Total price should equal price × 4 adults
+      expect(Math.abs(tour.totalPrice - tour.price * 4)).toBeLessThanOrEqual(1);
+      expect(tour).toHaveProperty("bookingUrl");
     }
   }, 30000);
 

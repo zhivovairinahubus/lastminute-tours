@@ -285,9 +285,12 @@ async function fetchRealLevelTravelTours(
     await Promise.allSettled(
       activeSearches.map(async (search) => {
         try {
+          // filter_price_max must be total budget for all adults, since min_price
+          // returned by the API is the full package price (not per-person).
+          const totalBudget = (budget * adults).toString();
           const params = new URLSearchParams({
             request_id: search.requestId,
-            filter_price_max: budget.toString(),
+            filter_price_max: totalBudget,
             sort_by: "price",
             page_limit: "5",
             page_number: "1",
@@ -459,6 +462,8 @@ export async function generateTourDescription(
 
   const prompt = `Ты — эксперт по спонтанным путешествиям. Пиши по-русски, живо и вдохновляюще.
 
+Это вариант №${tourIndex + 1} из 3. Каждый вариант должен звучать СОВЕРШЕННО ИНАЧЕ остальных.
+
 Тур:
 - Откуда: ${departureCityName}
 - Куда: ${tour.country}, ${tour.city}
@@ -468,7 +473,7 @@ export async function generateTourDescription(
 - Цена: ${tour.price.toLocaleString("ru-RU")} ₽/чел
 - Вылет: ${tour.departureDate}
 
-Угол описания: ${angle.focus}.
+Угол описания для варианта №${tourIndex + 1}: ${angle.focus}.
 Инструкция: ${angle.instruction}
 
 Напиши ответ в формате JSON:
