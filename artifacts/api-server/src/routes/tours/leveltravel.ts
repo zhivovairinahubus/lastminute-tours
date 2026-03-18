@@ -279,11 +279,17 @@ async function fetchRealLevelTravelTours(
       );
     }
 
-    // 3. Fetch hotels for all completed searches in parallel
+    // 3. Fetch hotels for confirmed-complete searches (reduces noisy empty fetches).
+    //    Searches that timed out are still included as Level.Travel may have partial results.
     const allTours: RawTour[] = [];
+    const searchesToFetch = activeSearches.filter(s => doneSearches.has(s.requestId));
+    const searchesWithPartial = activeSearches.filter(s => !doneSearches.has(s.requestId));
+    if (searchesWithPartial.length > 0) {
+      console.warn(`Level.Travel: ${searchesWithPartial.length} searches still pending after 30s, fetching partial results`);
+    }
 
     await Promise.allSettled(
-      activeSearches.map(async (search) => {
+      [...searchesToFetch, ...searchesWithPartial].map(async (search) => {
         try {
           // filter_price_max must be total budget for all adults, since min_price
           // returned by the API is the full package price (not per-person).
@@ -348,7 +354,7 @@ async function fetchRealLevelTravelTours(
               totalPrice,
               mealType: "Уточняется",
               imageUrl: h.hotel.images?.[0]?.x500 || DESTINATION_IMAGES[countryRu] || DEFAULT_IMAGE,
-              bookingUrl: `https://level.travel${h.hotel.link}`,
+              bookingUrl: normalizeBookingUrl(h.hotel.link),
               operatorName: "Level.Travel",
             });
           }
@@ -366,6 +372,12 @@ async function fetchRealLevelTravelTours(
     console.error("Level.Travel API error:", err);
     return null;
   }
+}
+
+function normalizeBookingUrl(link: string): string {
+  if (!link) return "https://level.travel/tours";
+  if (link.startsWith("http://") || link.startsWith("https://")) return link;
+  return `https://level.travel${link.startsWith("/") ? "" : "/"}${link}`;
 }
 
 function buildDemoBookingUrl(country: string, hotelSlug: string): string {
