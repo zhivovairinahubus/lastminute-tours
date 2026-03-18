@@ -37,12 +37,18 @@ const FAQ_ITEMS: FaqItem[] = [
 
 function FaqItem({ item, isOpen, onToggle }: { item: FaqItem; isOpen: boolean; onToggle: () => void }) {
   return (
-    <div className={cn(
-      "border border-border rounded-2xl overflow-hidden transition-all duration-200",
-      isOpen ? "border-primary/30 shadow-md shadow-primary/5" : "hover:border-border/80"
-    )}>
+    <div 
+      data-testid="faq-item"
+      data-open={isOpen ? "true" : "false"}
+      className={cn(
+        "border border-border rounded-2xl overflow-hidden transition-all duration-200",
+        isOpen ? "border-primary/30 shadow-md shadow-primary/5" : "hover:border-border/80"
+      )}
+    >
       <button
         onClick={onToggle}
+        data-testid="faq-toggle"
+        aria-expanded={isOpen}
         className="w-full flex items-center justify-between gap-4 p-6 text-left focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset rounded-2xl"
       >
         <span className={cn(
@@ -64,7 +70,10 @@ function FaqItem({ item, isOpen, onToggle }: { item: FaqItem; isOpen: boolean; o
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.25, ease: "easeInOut" }}
           >
-            <div className="px-6 pb-6 text-muted-foreground leading-relaxed text-sm md:text-base border-t border-border pt-4">
+            <div 
+              data-testid="faq-answer"
+              className="px-6 pb-6 text-muted-foreground leading-relaxed text-sm md:text-base border-t border-border pt-4"
+            >
               {item.answer}
             </div>
           </motion.div>
@@ -90,7 +99,7 @@ export function FaqSection() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3" data-testid="faq-list">
           {FAQ_ITEMS.map((item, i) => (
             <FaqItem
               key={i}

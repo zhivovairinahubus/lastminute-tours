@@ -281,4 +281,83 @@ router.post("/mobile-auth/logout", async (req: Request, res: Response) => {
   res.json(LogoutMobileSessionResponse.parse({ success: true }));
 });
 
+if (process.env.NODE_ENV !== "production") {
+  const TestLoginBody = z.object({
+    sub: z.string().min(1),
+    email: z.string().email().optional(),
+    first_name: z.string().optional(),
+    last_name: z.string().optional(),
+    redirect: z.string().startsWith("/").optional(),
+  });
+
+  router.post("/testing/login", async (req: Request, res: Response) => {
+    const parsed = TestLoginBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid test user claims" });
+      return;
+    }
+
+    const { sub, email, first_name, last_name, redirect } = parsed.data;
+
+    const dbUser = await upsertUser({
+      sub,
+      email: email ?? `${sub}@e2e.test`,
+      first_name: first_name ?? "Test",
+      last_name: last_name ?? "User",
+    });
+
+    const now = Math.floor(Date.now() / 1000);
+    const sessionData: SessionData = {
+      user: {
+        id: dbUser.id,
+        email: dbUser.email,
+        firstName: dbUser.firstName,
+        lastName: dbUser.lastName,
+        profileImageUrl: null,
+      },
+      access_token: "test-token",
+      refresh_token: undefined,
+      expires_at: now + 3600,
+    };
+
+    const sid = await createSession(sessionData);
+    setSessionCookie(res, sid);
+
+    if (redirect) {
+      res.redirect(redirect);
+      return;
+    }
+
+    res.json({ ok: true, userId: dbUser.id });
+  });
+
+  router.get("/testing/login", async (req: Request, res: Response) => {
+    const sub = (req.query.sub as string) || `testuser-${Date.now()}`;
+    const email = (req.query.email as string) || `${sub}@e2e.test`;
+    const first_name = (req.query.first_name as string) || "Test";
+    const last_name = (req.query.last_name as string) || "User";
+    const redirect = getSafeReturnTo(req.query.redirect as string || "/");
+
+    const dbUser = await upsertUser({ sub, email, first_name, last_name });
+
+    const now = Math.floor(Date.now() / 1000);
+    const sessionData: SessionData = {
+      user: {
+        id: dbUser.id,
+        email: dbUser.email,
+        firstName: dbUser.firstName,
+        lastName: dbUser.lastName,
+        profileImageUrl: null,
+      },
+      access_token: "test-token",
+      refresh_token: undefined,
+      expires_at: now + 3600,
+    };
+
+    const sid = await createSession(sessionData);
+    setSessionCookie(res, sid);
+    res.redirect(redirect);
+  });
+}
+
 export default router;

@@ -31,6 +31,7 @@ export function SearchForm({ onSearch, isSearching }: SearchFormProps) {
   return (
     <form 
       onSubmit={handleSubmit}
+      data-testid="search-form"
       className="glass-panel p-4 md:p-6 rounded-3xl max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-4 relative z-10"
     >
       <div className="flex-1 w-full relative group">
@@ -42,6 +43,7 @@ export function SearchForm({ onSearch, isSearching }: SearchFormProps) {
           value={city}
           onChange={(e) => setCity(e.target.value)}
           disabled={isLoadingCities}
+          data-testid="city-select"
           className="w-full h-16 pl-12 pr-4 pt-5 pb-2 bg-secondary/50 border-2 border-transparent hover:bg-secondary rounded-2xl appearance-none font-medium text-foreground focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
         >
           {cities.map((c) => (
@@ -64,6 +66,7 @@ export function SearchForm({ onSearch, isSearching }: SearchFormProps) {
           min="10000"
           step="5000"
           placeholder="Например, 50000"
+          data-testid="budget-input"
           className="w-full h-16 pl-12 pr-4 pt-5 pb-2 bg-secondary/50 border-2 border-transparent hover:bg-secondary rounded-2xl font-medium text-foreground focus:outline-none focus:border-accent focus:bg-white focus:ring-4 focus:ring-accent/10 transition-all placeholder:text-muted-foreground/50"
         />
       </div>
@@ -78,6 +81,7 @@ export function SearchForm({ onSearch, isSearching }: SearchFormProps) {
         <select
           value={adults}
           onChange={(e) => setAdults(Number(e.target.value))}
+          data-testid="adults-select"
           className="w-full h-16 pl-12 pr-4 pt-5 pb-2 bg-secondary/50 border-2 border-transparent hover:bg-secondary rounded-2xl appearance-none font-medium text-foreground focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100 transition-all cursor-pointer"
         >
           {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
@@ -89,6 +93,7 @@ export function SearchForm({ onSearch, isSearching }: SearchFormProps) {
       <button
         type="submit"
         disabled={isSearching}
+        data-testid="search-btn"
         className={cn(
           "w-full md:w-auto h-16 px-8 rounded-2xl font-bold text-lg text-white",
           "bg-gradient-brand shadow-lg shadow-primary/30",

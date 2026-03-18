@@ -1,125 +1,161 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * Authenticated E2E tests using Replit OIDC mock.
+ * Authenticated E2E tests using the dev-only /api/testing/login GET endpoint.
  *
- * These tests require ISSUER_URL to point to a test OIDC server (set via
- * environment variable in CI). In the Replit testing environment, pass
- * testReplitAuth: true to runTest() to activate the OIDC mock.
+ * NOTE on routing: The app BASE_PATH is "/" (not "/lastminute"). The proxy strips
+ * the /lastminute prefix before serving from Vite, so the SPA routes are at /.
+ * - Homepage: / (rendered at proxy domain root)
+ * - Profile: /profile
+ * - Booking: /booking
  *
- * When running locally against the Replit dev server with test OIDC enabled,
- * the OIDC_TEST_CLAIMS must be configured before initiating login.
+ * The testing/login redirect should go to "/" or "/profile" (not "/lastminute/").
+ *
+ * The playwright.config.ts baseURL is set to https://REPLIT_DEV_DOMAIN/lastminute
+ * so paths like "/" in goto() resolve to /lastminute/ in the browser.
+ * BUT the proxy strips /lastminute, so Vite sees "/" which renders the homepage.
  */
 
-test.describe("Profile page - Authenticated user via OIDC mock", () => {
-  test.skip(
-    !process.env.REPLIT_AUTH_TEST_ENABLED,
-    "Skipped: REPLIT_AUTH_TEST_ENABLED not set — run with testReplitAuth=true in runTest() or set env var"
-  );
+test.describe("Authentication - /api/testing/login browser flow", () => {
+  test("GET /api/testing/login sets session cookie and /api/auth/me returns user", async ({ page }) => {
+    const sub = `e2e-verify-${Date.now()}`;
 
-  const testUser = {
-    sub: `e2e-test-${Date.now()}`,
-    email: `e2e-test-${Date.now()}@example.com`,
-    first_name: "Test",
-    last_name: "User",
-  };
+    const response = await page.goto(
+      `../api/testing/login?sub=${sub}&email=${sub}%40e2e.test&first_name=Verif&last_name=Test&redirect=/`,
+      { waitUntil: "networkidle" }
+    );
 
-  test("login via OIDC mock and see profile page", async ({ page, request }) => {
-    await request.post("/api/testing/set-oidc-claims", {
-      data: testUser,
-    });
-
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-
-    const loginBtn = page.getByRole("link", { name: /войти/i })
-      .or(page.getByRole("button", { name: /войти/i }));
-
-    if (await loginBtn.first().isVisible({ timeout: 3000 }).catch(() => false)) {
-      await loginBtn.first().click();
-      await page.waitForLoadState("networkidle");
-    } else {
-      await page.goto("/api/login");
-      await page.waitForLoadState("networkidle");
+    if (!response || response.status() === 404) {
+      test.skip();
+      return;
     }
 
-    await page.goto("/profile");
-    await page.waitForLoadState("networkidle");
-
-    const content = await page.textContent("body");
-    const isLoggedIn =
-      (content ?? "").includes("Test") ||
-      (content ?? "").includes("User") ||
-      (content ?? "").includes("Выйти") ||
-      (content ?? "").includes("Сохранённые туры");
-    expect(isLoggedIn).toBe(true);
+    const meRes = await page.request.get("../api/auth/me");
+    expect(meRes.status()).toBe(200);
+    const meBody = await meRes.json();
+    expect(meBody.user).not.toBeNull();
+    expect(meBody.user.id).toBe(sub);
+    expect(meBody.user.firstName).toBe("Verif");
   });
 
-  test("authenticated user sees saved tours and search history sections", async ({ page, request }) => {
-    await request.post("/api/testing/set-oidc-claims", { data: testUser });
-    await page.goto("/api/login");
-    await page.waitForLoadState("networkidle");
+  test("authenticated user profile page shows user content (no войти button)", async ({ page }) => {
+    const sub = `e2e-profile-${Date.now()}`;
 
-    await page.goto("/profile");
-    await page.waitForLoadState("networkidle");
+    const response = await page.goto(
+      `../api/testing/login?sub=${sub}&email=${sub}%40e2e.test&first_name=Profile&last_name=Test&redirect=/profile`,
+      { waitUntil: "networkidle" }
+    );
+
+    if (!response || response.status() === 404) { test.skip(); return; }
+
+    await page.waitForTimeout(1000);
+
+    const loginLink = page.getByRole("link", { name: /войти/i }).or(
+      page.getByRole("button", { name: /войти/i })
+    );
+    const loginLinkVisible = await loginLink.first().isVisible({ timeout: 2000 }).catch(() => false);
+    expect(loginLinkVisible).toBe(false);
 
     const content = await page.textContent("body");
-    const hasSavedSection = (content ?? "").includes("Сохранённые туры");
-    const hasHistorySection = (content ?? "").includes("История поиска");
-    expect(hasSavedSection || hasHistorySection).toBe(true);
+    const isLoggedInState =
+      (content ?? "").includes("Сохранённые туры") ||
+      (content ?? "").includes("История") ||
+      (content ?? "").includes("Выйти") ||
+      (content ?? "").includes("Profile") ||
+      (content ?? "").includes("Verif");
+    expect(isLoggedInState).toBe(true);
   });
 });
 
-test.describe("Search and save tour - Authenticated flow", () => {
-  test.skip(
-    !process.env.REPLIT_AUTH_TEST_ENABLED,
-    "Skipped: REPLIT_AUTH_TEST_ENABLED not set"
-  );
+test.describe("Search + Save tour - Authenticated flow", () => {
+  test("search results show bookmark-btn for authenticated user", async ({ page }) => {
+    const sub = `e2e-save-${Date.now()}`;
 
-  test("search, find tours, verify bookmark button appears for auth user", async ({ page, request }) => {
-    const testUser = {
-      sub: `e2e-save-${Date.now()}`,
-      email: `e2e-save-${Date.now()}@example.com`,
-      first_name: "Save",
-      last_name: "Test",
-    };
-    await request.post("/api/testing/set-oidc-claims", { data: testUser });
-    await page.goto("/api/login");
+    const loginRes = await page.goto(
+      `../api/testing/login?sub=${sub}&email=${sub}%40e2e.test&first_name=Save&last_name=Test&redirect=/`,
+      { waitUntil: "networkidle" }
+    );
+
+    if (!loginRes || loginRes.status() === 404) { test.skip(); return; }
+
+    const searchForm = page.locator("[data-testid='search-form']");
+    await expect(searchForm).toBeVisible({ timeout: 5000 });
+
+    await page.locator("[data-testid='city-select']").selectOption("Москва");
+    await page.locator("[data-testid='budget-input']").fill("80000");
+    await page.locator("[data-testid='adults-select']").selectOption("2");
+    await page.locator("[data-testid='search-btn']").click();
+
+    const firstCard = page.locator("[data-testid='tour-card']").first();
+    await expect(firstCard).toBeVisible({ timeout: 30000 });
+
+    const bookmarkBtn = page.locator("[data-testid='bookmark-btn']").first();
+    await expect(bookmarkBtn).toBeVisible();
+    await expect(bookmarkBtn).toBeEnabled();
+
+    const savedBefore = await bookmarkBtn.getAttribute("data-saved");
+    expect(savedBefore).toBe("false");
+  });
+
+  test("clicking bookmark-btn sets data-saved=true", async ({ page }) => {
+    const sub = `e2e-bm-${Date.now()}`;
+
+    const loginRes = await page.goto(
+      `../api/testing/login?sub=${sub}&email=${sub}%40e2e.test&first_name=BM&last_name=Test&redirect=/`,
+      { waitUntil: "networkidle" }
+    );
+    if (!loginRes || loginRes.status() === 404) { test.skip(); return; }
+
+    await expect(page.locator("[data-testid='search-form']")).toBeVisible({ timeout: 5000 });
+    await page.locator("[data-testid='city-select']").selectOption("Москва");
+    await page.locator("[data-testid='budget-input']").fill("80000");
+    await page.locator("[data-testid='search-btn']").click();
+
+    const firstCard = page.locator("[data-testid='tour-card']").first();
+    await expect(firstCard).toBeVisible({ timeout: 30000 });
+
+    const bookmarkBtn = page.locator("[data-testid='bookmark-btn']").first();
+    await expect(bookmarkBtn).toBeVisible();
+    expect(await bookmarkBtn.getAttribute("data-saved")).toBe("false");
+    await bookmarkBtn.click();
+    await page.waitForTimeout(2000);
+    expect(await bookmarkBtn.getAttribute("data-saved")).toBe("true");
+  });
+
+  test("saved tour appears in /profile Сохранённые туры section", async ({ page }) => {
+    const sub = `e2e-prof-${Date.now()}`;
+
+    const loginRes = await page.goto(
+      `../api/testing/login?sub=${sub}&email=${sub}%40e2e.test&first_name=ProfTest&last_name=User&redirect=/`,
+      { waitUntil: "networkidle" }
+    );
+    if (!loginRes || loginRes.status() === 404) { test.skip(); return; }
+
+    await expect(page.locator("[data-testid='search-form']")).toBeVisible({ timeout: 5000 });
+    await page.locator("[data-testid='city-select']").selectOption("Москва");
+    await page.locator("[data-testid='budget-input']").fill("80000");
+    await page.locator("[data-testid='search-btn']").click();
+
+    const firstCard = page.locator("[data-testid='tour-card']").first();
+    await expect(firstCard).toBeVisible({ timeout: 30000 });
+
+    const bookmarkBtn = page.locator("[data-testid='bookmark-btn']").first();
+    await bookmarkBtn.click();
+    await page.waitForTimeout(2000);
+    expect(await bookmarkBtn.getAttribute("data-saved")).toBe("true");
+
+    await page.goto("/profile");
     await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1000);
 
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    const savedSection = page.locator("text=Сохранённые туры");
+    await expect(savedSection).toBeVisible();
 
-    const cityInput = page.locator("input").first();
-    await cityInput.click();
-    const moscowOption = page.getByRole("option", { name: /Москва/i });
-    if (await moscowOption.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await moscowOption.click();
-    }
-
-    const budgetInput = page.locator("input[type='number']").first();
-    await budgetInput.fill("80000");
-    await page.getByRole("button", { name: /найти|поиск/i }).click();
-
-    await page.waitForSelector("article, [class*='card']", { timeout: 30000 });
-
-    const bookmarkBtn = page.locator("[data-testid='bookmark-btn'], button[aria-label*='сохрани'], button[title*='сохрани']").first();
-    if (await bookmarkBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await bookmarkBtn.click();
-
-      await page.goto("/profile");
-      await page.waitForLoadState("networkidle");
-
-      const content = await page.textContent("body");
-      const hasSavedTour =
-        (content ?? "").includes("₽") ||
-        (content ?? "").includes("ночей") ||
-        (content ?? "").includes("Смотреть");
-      expect(hasSavedTour).toBe(true);
-    } else {
-      const content = await page.textContent("body");
-      const hasCards = (content ?? "").includes("₽");
-      expect(hasCards).toBe(true);
-    }
+    const content = await page.textContent("body");
+    const hasTourInProfile =
+      (content ?? "").includes("₽") ||
+      (content ?? "").includes("ночей") ||
+      (content ?? "").includes("Смотреть");
+    expect(hasTourInProfile).toBe(true);
   });
 });

@@ -57,6 +57,7 @@ export function TourCard({ tour, index, adults }: TourCardProps) {
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.15, ease: "easeOut" }}
+      data-testid="tour-card"
       className="bg-white rounded-3xl overflow-hidden border border-border/60 shadow-xl shadow-black/[0.03] hover:shadow-2xl hover:shadow-primary/5 hover:border-primary/20 transition-all duration-500 group flex flex-col h-full"
     >
       {/* Image Header */}
@@ -82,6 +83,8 @@ export function TourCard({ tour, index, adults }: TourCardProps) {
             <button
               onClick={() => !saved && saveMutation.mutate()}
               disabled={saved || saveMutation.isPending}
+              data-testid="bookmark-btn"
+              data-saved={saved ? "true" : "false"}
               className={`w-9 h-9 rounded-xl backdrop-blur-md shadow-lg flex items-center justify-center transition-all ${
                 saved
                   ? "bg-primary text-white"
@@ -163,6 +166,7 @@ export function TourCard({ tour, index, adults }: TourCardProps) {
             href={bookingUrl}
             target="_blank"
             rel="noopener noreferrer"
+            data-testid="smotret-link"
             className="h-12 px-6 bg-foreground text-background rounded-xl font-bold hover:bg-primary hover:text-white transition-all flex items-center gap-2 shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 active:translate-y-0"
           >
             Смотреть

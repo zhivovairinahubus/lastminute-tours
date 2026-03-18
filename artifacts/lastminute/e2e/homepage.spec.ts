@@ -13,130 +13,188 @@ test.describe("Homepage - Static content", () => {
     expect(text!.trim().length).toBeGreaterThan(5);
   });
 
-  test("search form exists on homepage", async ({ page }) => {
-    const form = page.locator("form").first();
+  test("search form (data-testid='search-form') is visible", async ({ page }) => {
+    const form = page.locator("[data-testid='search-form']");
     await expect(form).toBeVisible();
   });
 
-  test("budget number input is visible and editable", async ({ page }) => {
-    const budgetInput = page.locator("input[type='number']").first();
+  test("city-select has Москва as an option", async ({ page }) => {
+    const citySelect = page.locator("[data-testid='city-select']");
+    await expect(citySelect).toBeVisible();
+    const options = await citySelect.locator("option").allTextContents();
+    expect(options.some((o) => o.includes("Москва"))).toBe(true);
+  });
+
+  test("budget-input is visible and accepts numeric value", async ({ page }) => {
+    const budgetInput = page.locator("[data-testid='budget-input']");
     await expect(budgetInput).toBeVisible();
     await budgetInput.fill("75000");
     const val = await budgetInput.inputValue();
-    expect(Number(val)).toBeGreaterThan(0);
+    expect(Number(val)).toBe(75000);
   });
 
-  test("adults +/- controls are present", async ({ page }) => {
-    const plusBtn = page.getByRole("button", { name: "+" });
-    await expect(plusBtn).toBeVisible();
-    const minusBtn = page.getByRole("button", { name: "-" });
-    await expect(minusBtn).toBeVisible();
+  test("adults-select has all options 1-10", async ({ page }) => {
+    const adultsSelect = page.locator("[data-testid='adults-select']");
+    await expect(adultsSelect).toBeVisible();
+    const options = await adultsSelect.locator("option").allTextContents();
+    expect(options.length).toBe(10);
+    for (let i = 1; i <= 10; i++) {
+      expect(options.some((o) => o.startsWith(String(i)))).toBe(true);
+    }
   });
 
-  test("incrementing adults increases the displayed count", async ({ page }) => {
-    const countEl = page.locator("span, div").filter({ hasText: /^[1-9]$/ }).first();
-    const before = Number(await countEl.textContent());
-    await page.getByRole("button", { name: "+" }).click();
-    const after = Number(await countEl.textContent());
-    expect(after).toBeGreaterThan(before);
+  test("adults-select: selecting value 5 sets the select to 5", async ({ page }) => {
+    const adultsSelect = page.locator("[data-testid='adults-select']");
+    await adultsSelect.selectOption("5");
+    const val = await adultsSelect.inputValue();
+    expect(val).toBe("5");
   });
 
-  test("city select/autocomplete input is visible", async ({ page }) => {
-    const cityInput = page.locator("input").first();
-    await expect(cityInput).toBeVisible();
+  test("search-btn is visible and not disabled by default", async ({ page }) => {
+    const searchBtn = page.locator("[data-testid='search-btn']");
+    await expect(searchBtn).toBeVisible();
+    await expect(searchBtn).toBeEnabled();
   });
 
-  test("navbar is visible with logo text", async ({ page }) => {
+  test("navbar is visible", async ({ page }) => {
     const nav = page.locator("nav");
     await expect(nav).toBeVisible();
   });
 
-  test("Booking (Бронирование) link is in navbar", async ({ page }) => {
+  test("Бронирование link is in navbar", async ({ page }) => {
     const bookingLink = page.getByRole("link", { name: /Бронирование/i });
     await expect(bookingLink).toBeVisible();
   });
 
-  test("page contains destinations or popular direction section", async ({ page }) => {
+  test("page contains popular destinations section", async ({ page }) => {
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
     const content = await page.textContent("body");
-    const hasDestinations = (content ?? "").includes("Турц") ||
+    const hasDestinations =
+      (content ?? "").includes("Турц") ||
       (content ?? "").includes("Египет") ||
       (content ?? "").includes("Таиланд") ||
       (content ?? "").includes("направлени");
     expect(hasDestinations).toBe(true);
   });
 
-  test("footer is visible at bottom of page", async ({ page }) => {
+  test("FAQ section exists with accordion items", async ({ page }) => {
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    const footer = page.locator("footer");
-    await expect(footer).toBeVisible({ timeout: 3000 });
+    await page.waitForTimeout(500);
+    const faqList = page.locator("[data-testid='faq-list']");
+    await expect(faqList).toBeVisible({ timeout: 5000 });
+    const faqItems = faqList.locator("[data-testid='faq-item']");
+    const count = await faqItems.count();
+    expect(count).toBeGreaterThanOrEqual(4);
   });
 });
 
-test.describe("Homepage - Search flow with adults=2", () => {
-  test("full search: Москва, budget=80000, adults=2 → tour cards appear", async ({ page }) => {
+test.describe("Homepage - FAQ accordion interaction", () => {
+  test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-
-    const cityInput = page.locator("input").first();
-    await cityInput.click();
-    const moscowOption = page.getByRole("option", { name: /Москва/i });
-    if (await moscowOption.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await moscowOption.click();
-    }
-
-    const budgetInput = page.locator("input[type='number']").first();
-    await budgetInput.fill("80000");
-
-    const searchBtn = page.getByRole("button", { name: /найти|поиск/i });
-    await searchBtn.click();
-
-    const tourCard = page.locator("article, [class*='card'], [class*='tour']").first();
-    await expect(tourCard).toBeVisible({ timeout: 30000 });
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(500);
   });
 
-  test("tour cards have Смотреть link with https:// href", async ({ page }) => {
+  test("first FAQ item is open by default (openIndex=0)", async ({ page }) => {
+    const firstItem = page.locator("[data-testid='faq-item']").first();
+    const dataOpen = await firstItem.getAttribute("data-open");
+    expect(dataOpen).toBe("true");
+
+    const answer = firstItem.locator("[data-testid='faq-answer']");
+    await expect(answer).toBeVisible({ timeout: 3000 });
+  });
+
+  test("clicking closed FAQ item opens it (aria-expanded changes to true)", async ({ page }) => {
+    const items = page.locator("[data-testid='faq-item']");
+    const secondToggle = items.nth(1).locator("[data-testid='faq-toggle']");
+
+    const ariaExpandedBefore = await secondToggle.getAttribute("aria-expanded");
+    expect(ariaExpandedBefore).toBe("false");
+
+    await secondToggle.click();
+    await page.waitForTimeout(400);
+
+    const ariaExpandedAfter = await secondToggle.getAttribute("aria-expanded");
+    expect(ariaExpandedAfter).toBe("true");
+
+    const answer = items.nth(1).locator("[data-testid='faq-answer']");
+    await expect(answer).toBeVisible({ timeout: 3000 });
+  });
+
+  test("clicking open FAQ item closes it (accordion collapse)", async ({ page }) => {
+    const firstItem = page.locator("[data-testid='faq-item']").first();
+    const firstToggle = firstItem.locator("[data-testid='faq-toggle']");
+
+    await expect(firstItem.locator("[data-testid='faq-answer']")).toBeVisible({ timeout: 3000 });
+
+    await firstToggle.click();
+    await page.waitForTimeout(400);
+
+    const dataOpen = await firstItem.getAttribute("data-open");
+    expect(dataOpen).toBe("false");
+
+    const answer = firstItem.locator("[data-testid='faq-answer']");
+    await expect(answer).not.toBeVisible({ timeout: 3000 });
+  });
+
+  test("only one FAQ item open at a time (opening new collapses previous)", async ({ page }) => {
+    const items = page.locator("[data-testid='faq-item']");
+    const firstToggle = items.first().locator("[data-testid='faq-toggle']");
+    const secondToggle = items.nth(1).locator("[data-testid='faq-toggle']");
+
+    await expect(items.first().getAttribute("data-open")).resolves.toBe("true");
+
+    await secondToggle.click();
+    await page.waitForTimeout(400);
+
+    const firstOpen = await items.first().getAttribute("data-open");
+    const secondOpen = await items.nth(1).getAttribute("data-open");
+    expect(firstOpen).toBe("false");
+    expect(secondOpen).toBe("true");
+  });
+});
+
+test.describe("Homepage - Search flow", () => {
+  test("full search: Москва, 80000, adults=2 → tour cards appear", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    const cityInput = page.locator("input").first();
-    await cityInput.click();
-    const moscowOption = page.getByRole("option", { name: /Москва/i });
-    if (await moscowOption.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await moscowOption.click();
-    }
+    await page.locator("[data-testid='city-select']").selectOption("Москва");
+    await page.locator("[data-testid='budget-input']").fill("80000");
+    await page.locator("[data-testid='adults-select']").selectOption("2");
+    await page.locator("[data-testid='search-btn']").click();
 
-    const budgetInput = page.locator("input[type='number']").first();
-    await budgetInput.fill("80000");
+    const firstCard = page.locator("[data-testid='tour-card']").first();
+    await expect(firstCard).toBeVisible({ timeout: 30000 });
+  });
 
-    await page.getByRole("button", { name: /найти|поиск/i }).click();
+  test("tour cards show ₽ price in title area", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
-    const smotretLink = page.getByRole("link", { name: /смотреть/i }).first();
+    await page.locator("[data-testid='city-select']").selectOption("Москва");
+    await page.locator("[data-testid='budget-input']").fill("80000");
+    await page.locator("[data-testid='search-btn']").click();
+
+    await page.locator("[data-testid='tour-card']").first().waitFor({ timeout: 30000 });
+
+    const content = await page.textContent("body");
+    expect((content ?? "").includes("₽")).toBe(true);
+  });
+
+  test("Смотреть link (data-testid='smotret-link') has https:// href", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    await page.locator("[data-testid='city-select']").selectOption("Москва");
+    await page.locator("[data-testid='budget-input']").fill("80000");
+    await page.locator("[data-testid='search-btn']").click();
+
+    const smotretLink = page.locator("[data-testid='smotret-link']").first();
     await expect(smotretLink).toBeVisible({ timeout: 30000 });
 
     const href = await smotretLink.getAttribute("href");
     expect(href).toMatch(/^https:\/\//);
-  });
-
-  test("tour cards show price and hotel name", async ({ page }) => {
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-
-    const cityInput = page.locator("input").first();
-    await cityInput.click();
-    const moscowOption = page.getByRole("option", { name: /Москва/i });
-    if (await moscowOption.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await moscowOption.click();
-    }
-
-    const budgetInput = page.locator("input[type='number']").first();
-    await budgetInput.fill("80000");
-
-    await page.getByRole("button", { name: /найти|поиск/i }).click();
-
-    await page.waitForSelector("article, [class*='card']", { timeout: 30000 });
-
-    const content = await page.textContent("body");
-    const hasPrice = (content ?? "").includes("₽");
-    expect(hasPrice).toBe(true);
   });
 });
