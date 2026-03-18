@@ -139,7 +139,7 @@ components:
           description: Short AI verdict - стоит или нет
         bookingUrl:
           type: string
-          description: URL to booking page
+          description: URL to booking page on level.travel or partner site
       required:
         - id
         - destination
@@ -155,6 +155,7 @@ components:
         - mealType
         - aiDescription
         - aiRecommendation
+        - bookingUrl
     TourSearchResponse:
       type: object
       properties:

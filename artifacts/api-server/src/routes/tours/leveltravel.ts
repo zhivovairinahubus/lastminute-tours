@@ -218,7 +218,10 @@ async function fetchRealLevelTravelTours(
       "Content-Type": "application/json",
     };
 
-    // 1. Enqueue searches for multiple popular countries in parallel
+    // 1. Enqueue searches for multiple popular countries in parallel.
+    //    Level.Travel API v3.7 uses GET /search/enqueue with query params (not POST).
+    //    See official docs: "GET https://api.level.travel/search/enqueue"
+    //    The curl example in the docs also uses GET with query params.
     const enqueueResults = await Promise.allSettled(
       SEARCH_COUNTRIES.map(async (countryIso) => {
         const params = new URLSearchParams({
@@ -249,11 +252,11 @@ async function fetchRealLevelTravelTours(
 
     if (activeSearches.length === 0) return null;
 
-    // 2. Poll status for all searches (wait max 20s, check every 2s)
+    // 2. Poll status for all searches (wait max 30s per spec, check every 2s)
     const startTime = Date.now();
     const doneSearches = new Set<string>();
 
-    while (doneSearches.size < activeSearches.length && Date.now() - startTime < 20000) {
+    while (doneSearches.size < activeSearches.length && Date.now() - startTime < 30000) {
       await new Promise(r => setTimeout(r, 2000));
 
       await Promise.allSettled(

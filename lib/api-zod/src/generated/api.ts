@@ -57,7 +57,9 @@ export const SearchToursResponse = zod.object({
       aiRecommendation: zod
         .string()
         .describe("Short AI verdict - стоит или нет"),
-      bookingUrl: zod.string().optional().describe("URL to booking page"),
+      bookingUrl: zod
+        .string()
+        .describe("URL to booking page on level.travel or partner site"),
     }),
   ),
   searchId: zod.string().optional(),

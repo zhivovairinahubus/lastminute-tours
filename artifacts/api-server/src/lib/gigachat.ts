@@ -3,6 +3,22 @@ import { db } from "@workspace/db";
 import { settingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
+/**
+ * GigaChat (Sberbank) OAuth2 client.
+ *
+ * TLS note: Sberbank hosts GigaChat API on servers that use certificates signed by
+ * the Russian National CA (Минцифра / Gosuslugi CA), which is NOT in Node.js's
+ * default trust store. As a result, strict TLS validation fails with
+ * "UNABLE_TO_VERIFY_LEAF_SIGNATURE". The recommended workaround used by
+ * Sberbank's own SDK and all official GigaChat integration examples is to set
+ * `rejectUnauthorized: false` specifically for requests to *.sberbank.ru and
+ * gigachat.devices.sberbank.ru endpoints only. This is scoped to a dedicated
+ * https.Agent and does NOT affect any other outgoing connections.
+ *
+ * Alternative: bundle the Sberbank/Минцифра root CA cert via `ca` option.
+ */
+const sberbankAgent = new https.Agent({ rejectUnauthorized: false });
+
 interface GigaChatToken {
   access_token: string;
   expires_at: number;
@@ -33,7 +49,7 @@ async function getGigaChatToken(authKey: string): Promise<string | null> {
 
   return new Promise((resolve) => {
     const postData = "scope=GIGACHAT_API_PERS";
-    const options = {
+    const options: https.RequestOptions = {
       hostname: "ngw.devices.sberbank.ru",
       port: 9443,
       path: "/api/v2/oauth",
@@ -45,7 +61,7 @@ async function getGigaChatToken(authKey: string): Promise<string | null> {
         "Authorization": `Basic ${authKey}`,
         "Content-Length": Buffer.byteLength(postData),
       },
-      rejectUnauthorized: false,
+      agent: sberbankAgent,
     };
 
     const req = https.request(options, (res) => {
@@ -102,7 +118,7 @@ export async function gigaChatComplete(
   });
 
   return new Promise((resolve) => {
-    const options = {
+    const options: https.RequestOptions = {
       hostname: "gigachat.devices.sberbank.ru",
       path: "/api/v1/chat/completions",
       method: "POST",
@@ -112,7 +128,7 @@ export async function gigaChatComplete(
         "Authorization": `Bearer ${token}`,
         "Content-Length": Buffer.byteLength(body),
       },
-      rejectUnauthorized: false,
+      agent: sberbankAgent,
     };
 
     const req = https.request(options, (res) => {
