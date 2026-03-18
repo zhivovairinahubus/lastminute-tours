@@ -2,11 +2,16 @@ import { describe, it, expect, beforeAll } from "vitest";
 
 const BASE_URL = process.env.API_URL || "http://localhost:8080";
 
+async function fetchJson(url: string, init?: RequestInit): Promise<Record<string, unknown>> {
+  const res = await fetch(url, init);
+  return { ...(await res.json() as object), $status: res.status };
+}
+
 describe("Health check", () => {
   it("GET /api/healthz returns 200", async () => {
     const res = await fetch(`${BASE_URL}/api/healthz`);
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as Record<string, unknown>;
     expect(data).toHaveProperty("status", "ok");
   });
 });
@@ -15,15 +20,15 @@ describe("Departure cities", () => {
   it("GET /api/tours/cities returns cities array", async () => {
     const res = await fetch(`${BASE_URL}/api/tours/cities`);
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as Record<string, unknown>;
     expect(data).toHaveProperty("cities");
     expect(Array.isArray(data.cities)).toBe(true);
-    expect(data.cities.length).toBeGreaterThan(0);
+    expect((data.cities as unknown[]).length).toBeGreaterThan(0);
   });
 
   it("Each city has id, name, nameEn fields", async () => {
     const res = await fetch(`${BASE_URL}/api/tours/cities`);
-    const data = await res.json();
+    const data = await res.json() as { cities: Array<Record<string, unknown>> };
     const city = data.cities[0];
     expect(city).toHaveProperty("id");
     expect(city).toHaveProperty("name");
@@ -66,7 +71,7 @@ describe("Tour search", () => {
         adults: 2,
       }),
     });
-    toursResponse = await res.json();
+    toursResponse = await res.json() as typeof toursResponse;
   }, 30000);
 
   it("POST /api/tours/search returns 200", async () => {
@@ -157,12 +162,11 @@ describe("Tour search", () => {
       body: JSON.stringify({ departureCity: "Москва", budget: 80000, adults: 1 }),
     });
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as { tours: Array<{ price: number; totalPrice: number; bookingUrl?: string }> };
     expect(Array.isArray(data.tours)).toBe(true);
     for (const tour of data.tours) {
       expect(tour.price).toBeLessThanOrEqual(80000);
       expect(tour).toHaveProperty("bookingUrl");
-      // For 1 adult, totalPrice should equal price
       expect(Math.abs(tour.totalPrice - tour.price)).toBeLessThanOrEqual(1);
     }
   }, 30000);
@@ -174,13 +178,11 @@ describe("Tour search", () => {
       body: JSON.stringify({ departureCity: "Москва", budget: 80000, adults: 4 }),
     });
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as { tours: Array<{ price: number; totalPrice: number; bookingUrl?: string }> };
     expect(Array.isArray(data.tours)).toBe(true);
     expect(data.tours.length).toBeGreaterThan(0);
     for (const tour of data.tours) {
-      // Per-person price must be within per-person budget
       expect(tour.price).toBeLessThanOrEqual(80000);
-      // Total price should equal price × 4 adults
       expect(Math.abs(tour.totalPrice - tour.price * 4)).toBeLessThanOrEqual(1);
       expect(tour).toHaveProperty("bookingUrl");
     }
@@ -209,7 +211,7 @@ describe("Admin settings API", () => {
   it("GET /api/admin/settings/status returns gigachat and levelTravel booleans", async () => {
     const res = await fetch(`${BASE_URL}/api/admin/settings/status`);
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as Record<string, unknown>;
     expect(data).toHaveProperty("gigachat");
     expect(data).toHaveProperty("levelTravel");
     expect(typeof data.gigachat).toBe("boolean");
@@ -219,7 +221,7 @@ describe("Admin settings API", () => {
   it("GET /api/admin/settings returns settings object", async () => {
     const res = await fetch(`${BASE_URL}/api/admin/settings`);
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as Record<string, unknown>;
     expect(data).toHaveProperty("settings");
   });
 

@@ -18,3 +18,5 @@
 //   export type Post = typeof postsTable.$inferSelect;
 
 export * from "./settings";
+export * from "./auth";
+export * from "./savedTours";

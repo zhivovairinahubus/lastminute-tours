@@ -1,8 +1,11 @@
 import { motion } from "framer-motion";
 import { format, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
-import { MapPin, Calendar, Utensils, Star, Sparkles, ArrowRight } from "lucide-react";
+import { MapPin, Calendar, Utensils, Star, Sparkles, ArrowRight, Bookmark } from "lucide-react";
 import type { Tour } from "@workspace/api-client-react/src/generated/api.schemas";
+import { useAuth } from "@workspace/replit-auth-web";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 interface TourCardProps {
   tour: Tour;
@@ -10,8 +13,16 @@ interface TourCardProps {
   adults: number;
 }
 
+function getApiUrl(path: string) {
+  const base = import.meta.env.BASE_URL.replace(/\/+$/, "");
+  return `${base}/api${path}`;
+}
+
 export function TourCard({ tour, index, adults }: TourCardProps) {
   const imageUrl = tour.imageUrl || `https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=800&q=80&random=${index}`;
+  const { isAuthenticated } = useAuth();
+  const [saved, setSaved] = useState(false);
+  const queryClient = useQueryClient();
 
   const formatDate = (dateString: string) => {
     try {
@@ -28,6 +39,22 @@ export function TourCard({ tour, index, adults }: TourCardProps) {
     : `За ${adults} человек`;
 
   const bookingUrl = tour.bookingUrl || `https://level.travel/search`;
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(getApiUrl("/user/saved-tours"), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tourId: tour.id, tourData: tour }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+    },
+    onSuccess: () => {
+      setSaved(true);
+      queryClient.invalidateQueries({ queryKey: ["saved-tours"] });
+    },
+  });
 
   return (
     <motion.div
@@ -52,6 +79,24 @@ export function TourCard({ tour, index, adults }: TourCardProps) {
             {tour.aiRecommendation || "Отличный выбор"}
           </div>
         </div>
+
+        {/* Bookmark Button */}
+        {isAuthenticated && (
+          <div className="absolute top-4 right-4 z-20">
+            <button
+              onClick={() => !saved && saveMutation.mutate()}
+              disabled={saved || saveMutation.isPending}
+              className={`w-9 h-9 rounded-xl backdrop-blur-md shadow-lg flex items-center justify-center transition-all ${
+                saved
+                  ? "bg-primary text-white"
+                  : "bg-white/95 text-muted-foreground hover:text-primary hover:bg-white"
+              }`}
+              title={saved ? "Сохранено" : "Сохранить тур"}
+            >
+              <Bookmark className={`w-4 h-4 ${saved ? "fill-white" : ""}`} />
+            </button>
+          </div>
+        )}
 
         {/* Price Tag */}
         <div className="absolute bottom-4 right-4 z-20">
