@@ -218,10 +218,8 @@ async function fetchRealLevelTravelTours(
       "Content-Type": "application/json",
     };
 
-    // 1. Enqueue searches for multiple popular countries in parallel.
-    //    Level.Travel API v3.7 uses GET /search/enqueue with query params (not POST).
-    //    See official docs: "GET https://api.level.travel/search/enqueue"
-    //    The curl example in the docs also uses GET with query params.
+    // 1. Enqueue searches for multiple popular countries in parallel via POST /search/enqueue.
+    //    Parameters are sent as query params per the Level.Travel v3.7 API contract.
     const enqueueResults = await Promise.allSettled(
       SEARCH_COUNTRIES.map(async (countryIso) => {
         const params = new URLSearchParams({
@@ -236,7 +234,11 @@ async function fetchRealLevelTravelTours(
         });
         const resp = await fetch(
           `https://api.level.travel/search/enqueue?${params}`,
-          { headers, signal: AbortSignal.timeout(8000) }
+          {
+            method: "POST",
+            headers,
+            signal: AbortSignal.timeout(8000),
+          }
         );
         if (!resp.ok) return null;
         const data = await resp.json() as { success: boolean; request_id?: string };
