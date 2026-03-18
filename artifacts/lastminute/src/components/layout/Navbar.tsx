@@ -1,6 +1,10 @@
 import { Link, useLocation } from "wouter";
-import { Plane, HelpCircle, Settings } from "lucide-react";
+import { Plane, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const scrollTo = (id: string) => {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+};
 
 export function Navbar() {
   const [location] = useLocation();
@@ -20,13 +24,25 @@ export function Navbar() {
         <div className="hidden md:flex items-center gap-6">
           {location === "/" && (
             <>
-              <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <a
+                href="#how-it-works"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                onClick={(e) => { e.preventDefault(); scrollTo("how-it-works"); }}
+              >
                 Как работает
               </a>
-              <a href="#benefits" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                Преимущества
+              <a
+                href="#destinations"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                onClick={(e) => { e.preventDefault(); scrollTo("destinations"); }}
+              >
+                Куда полететь
               </a>
-              <a href="#reviews" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <a
+                href="#reviews"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                onClick={(e) => { e.preventDefault(); scrollTo("reviews"); }}
+              >
                 Отзывы
               </a>
             </>
@@ -44,7 +60,7 @@ export function Navbar() {
               className="px-5 py-2.5 rounded-full bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-colors shadow-md shadow-primary/20"
               onClick={(e) => {
                 e.preventDefault();
-                document.getElementById("search")?.scrollIntoView({ behavior: "smooth" });
+                scrollTo("search");
               }}
             >
               Найти тур

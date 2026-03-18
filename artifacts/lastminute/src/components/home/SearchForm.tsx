@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Search, MapPin, Wallet, Sparkles } from "lucide-react";
+import { Search, MapPin, Wallet, Sparkles, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGetDepartureCities } from "@/hooks/use-tours";
 
 interface SearchFormProps {
-  onSearch: (city: string, budget: number) => void;
+  onSearch: (city: string, budget: number, adults: number) => void;
   isSearching: boolean;
 }
 
@@ -13,12 +13,13 @@ export function SearchForm({ onSearch, isSearching }: SearchFormProps) {
   
   const [city, setCity] = useState("Москва");
   const [budget, setBudget] = useState<string>("50000");
+  const [adults, setAdults] = useState<number>(2);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const budgetNum = parseInt(budget.replace(/\D/g, ""), 10);
     if (city && budgetNum > 0) {
-      onSearch(city, budgetNum);
+      onSearch(city, budgetNum, adults);
     }
   };
 
@@ -30,7 +31,7 @@ export function SearchForm({ onSearch, isSearching }: SearchFormProps) {
   return (
     <form 
       onSubmit={handleSubmit}
-      className="glass-panel p-4 md:p-6 rounded-3xl max-w-4xl mx-auto flex flex-col md:flex-row items-center gap-4 relative z-10"
+      className="glass-panel p-4 md:p-6 rounded-3xl max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-4 relative z-10"
     >
       <div className="flex-1 w-full relative group">
         <label className="absolute left-4 top-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -65,6 +66,24 @@ export function SearchForm({ onSearch, isSearching }: SearchFormProps) {
           placeholder="Например, 50000"
           className="w-full h-16 pl-12 pr-4 pt-5 pb-2 bg-secondary/50 border-2 border-transparent hover:bg-secondary rounded-2xl font-medium text-foreground focus:outline-none focus:border-accent focus:bg-white focus:ring-4 focus:ring-accent/10 transition-all placeholder:text-muted-foreground/50"
         />
+      </div>
+
+      <div className="hidden md:block w-px h-12 bg-border/60"></div>
+
+      <div className="w-full md:w-44 relative group">
+        <label className="absolute left-4 top-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          Путешественников
+        </label>
+        <Users className="absolute left-4 bottom-4 w-5 h-5 text-indigo-500" />
+        <select
+          value={adults}
+          onChange={(e) => setAdults(Number(e.target.value))}
+          className="w-full h-16 pl-12 pr-4 pt-5 pb-2 bg-secondary/50 border-2 border-transparent hover:bg-secondary rounded-2xl appearance-none font-medium text-foreground focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100 transition-all cursor-pointer"
+        >
+          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+            <option key={n} value={n}>{n} {n === 1 ? "человек" : n < 5 ? "человека" : "человек"}</option>
+          ))}
+        </select>
       </div>
 
       <button

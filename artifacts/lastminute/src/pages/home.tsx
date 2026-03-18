@@ -1,9 +1,11 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/home/Hero";
 import { Results } from "@/components/home/Results";
+import { DestinationsSection } from "@/components/home/DestinationsSection";
+import { FaqSection } from "@/components/home/FaqSection";
 import { useSearchTours } from "@/hooks/use-tours";
 import {
   Zap, Shield, Brain, Clock, TrendingDown, Star,
@@ -20,16 +22,16 @@ const STEPS = [
   },
   {
     num: 2,
-    icon: TrendingDown,
-    title: "Задайте бюджет",
-    desc: "Введите максимальную сумму на человека. Сервис найдёт всё, что укладывается в ваш бюджет.",
+    icon: Users,
+    title: "Задайте бюджет и число туристов",
+    desc: "Введите максимальную сумму на человека и количество путешественников — от 1 до 10.",
     color: "bg-primary/10 text-primary",
   },
   {
     num: 3,
     icon: Brain,
     title: "ИИ ищет туры",
-    desc: "Алгоритм сканирует предложения Level.Travel на ближайшие 7 дней и отбирает топ-3 самых выгодных.",
+    desc: "Алгоритм сканирует предложения множества туроператоров на ближайшие 7 дней и отбирает топ-3 самых выгодных.",
     color: "bg-indigo-50 text-indigo-500",
   },
   {
@@ -134,10 +136,12 @@ const STATS = [
 export default function Home() {
   const { mutate, data, isPending, isError } = useSearchTours();
   const resultsRef = useRef<HTMLDivElement>(null);
+  const [adults, setAdults] = useState(2);
 
-  const handleSearch = (city: string, budget: number) => {
+  const handleSearch = (city: string, budget: number, adultsCount: number) => {
+    setAdults(adultsCount);
     mutate(
-      { data: { departureCity: city, budget, adults: 2 } },
+      { data: { departureCity: city, budget, adults: adultsCount } },
       {
         onSuccess: () => {
           setTimeout(() => {
@@ -148,18 +152,24 @@ export default function Home() {
     );
   };
 
+  const handleDestinationClick = (_country: string) => {
+    document.getElementById("search")?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
 
       <main className="flex-1">
         {/* HERO + SEARCH */}
-        <Hero onSearch={handleSearch} isSearching={isPending} />
+        <section id="search">
+          <Hero onSearch={handleSearch} isSearching={isPending} />
+        </section>
 
         {/* RESULTS */}
         <div ref={resultsRef}>
           {(isPending || data || isError) && (
-            <Results data={data} isPending={isPending} isError={isError} />
+            <Results data={data} isPending={isPending} isError={isError} adults={adults} />
           )}
         </div>
 
@@ -222,6 +232,9 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* DESTINATIONS */}
+        <DestinationsSection onDestinationClick={handleDestinationClick} />
 
         {/* BENEFITS */}
         <section className="py-28 bg-slate-50" id="benefits">
@@ -309,8 +322,11 @@ export default function Home() {
           </div>
         </section>
 
+        {/* FAQ */}
+        <FaqSection />
+
         {/* REVIEWS */}
-        <section className="py-28 bg-slate-50" id="reviews">
+        <section className="py-28 bg-white" id="reviews">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 font-bold text-sm mb-4">
@@ -329,7 +345,7 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
-                  className="bg-white rounded-3xl p-8 border border-border hover:border-emerald-200 hover:shadow-lg transition-all"
+                  className="bg-slate-50 rounded-3xl p-8 border border-border hover:border-emerald-200 hover:shadow-lg transition-all"
                 >
                   <div className="flex items-center gap-1 mb-4">
                     {Array.from({ length: review.stars }).map((_, j) => (
@@ -353,7 +369,7 @@ export default function Home() {
         </section>
 
         {/* CTA BOTTOM */}
-        <section className="py-28 bg-gradient-brand" id="search">
+        <section className="py-28 bg-gradient-brand">
           <div className="max-w-4xl mx-auto px-4 text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}

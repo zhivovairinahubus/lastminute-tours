@@ -7,9 +7,10 @@ interface ResultsProps {
   data?: TourSearchResponse | null;
   isPending: boolean;
   isError: boolean;
+  adults: number;
 }
 
-export function Results({ data, isPending, isError }: ResultsProps) {
+export function Results({ data, isPending, isError, adults }: ResultsProps) {
   if (isPending) {
     return (
       <section className="py-20 bg-background" id="results">
@@ -96,7 +97,7 @@ export function Results({ data, isPending, isError }: ResultsProps) {
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
             {data.tours.map((tour, idx) => (
-              <TourCard key={tour.id} tour={tour} index={idx} />
+              <TourCard key={tour.id} tour={tour} index={idx} adults={adults} />
             ))}
           </div>
         </div>

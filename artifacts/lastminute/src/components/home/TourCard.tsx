@@ -1,17 +1,16 @@
 import { motion } from "framer-motion";
 import { format, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
-import { MapPin, Calendar, Utensils, Star, Sparkles, ExternalLink, ArrowRight } from "lucide-react";
+import { MapPin, Calendar, Utensils, Star, Sparkles, ArrowRight } from "lucide-react";
 import type { Tour } from "@workspace/api-client-react/src/generated/api.schemas";
 
 interface TourCardProps {
   tour: Tour;
   index: number;
+  adults: number;
 }
 
-export function TourCard({ tour, index }: TourCardProps) {
-  // Fallback to Unsplash if no image provided
-  {/* resort pool sunny day travel vacation */}
+export function TourCard({ tour, index, adults }: TourCardProps) {
   const imageUrl = tour.imageUrl || `https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=800&q=80&random=${index}`;
 
   const formatDate = (dateString: string) => {
@@ -21,6 +20,14 @@ export function TourCard({ tour, index }: TourCardProps) {
       return dateString;
     }
   };
+
+  const adultsLabel = adults === 1
+    ? "За 1 человека"
+    : adults < 5
+    ? `За ${adults} человека`
+    : `За ${adults} человек`;
+
+  const bookingUrl = tour.bookingUrl || `https://level.travel/search`;
 
   return (
     <motion.div
@@ -53,7 +60,7 @@ export function TourCard({ tour, index }: TourCardProps) {
               {tour.totalPrice.toLocaleString('ru-RU')} ₽
             </div>
             <div className="text-white/70 text-[10px] uppercase font-bold tracking-wider mt-1">
-              За всех
+              {adultsLabel}
             </div>
           </div>
         </div>
@@ -111,10 +118,15 @@ export function TourCard({ tour, index }: TourCardProps) {
             <div className="text-sm text-muted-foreground font-medium">За человека</div>
             <div className="font-bold text-lg text-foreground">{tour.price.toLocaleString('ru-RU')} ₽</div>
           </div>
-          <button className="h-12 px-6 bg-foreground text-background rounded-xl font-bold hover:bg-primary hover:text-white transition-all flex items-center gap-2 shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 active:translate-y-0">
+          <a
+            href={bookingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="h-12 px-6 bg-foreground text-background rounded-xl font-bold hover:bg-primary hover:text-white transition-all flex items-center gap-2 shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 active:translate-y-0"
+          >
             Смотреть
             <ArrowRight className="w-4 h-4" />
-          </button>
+          </a>
         </div>
       </div>
     </motion.div>

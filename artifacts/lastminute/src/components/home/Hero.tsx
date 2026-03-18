@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { SearchForm } from "./SearchForm";
 
 interface HeroProps {
-  onSearch: (city: string, budget: number) => void;
+  onSearch: (city: string, budget: number, adults: number) => void;
   isSearching: boolean;
 }
 
@@ -38,7 +38,7 @@ export function Hero({ onSearch, isSearching }: HeroProps) {
           </h1>
           
           <p className="text-lg md:text-xl text-slate-600 mb-10 max-w-2xl mx-auto font-medium">
-            Вводите бюджет и город вылета. Наш ИИ анализирует сотни предложений Level.Travel и выдает 3 лучших тура на ближайшие выходные.
+            Вводите бюджет и город вылета. Наш ИИ анализирует сотни предложений туроператоров и выдаёт 3 лучших тура на ближайшие выходные.
           </p>
         </motion.div>
 
