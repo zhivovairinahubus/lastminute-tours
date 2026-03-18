@@ -49,26 +49,15 @@ describe("generateDemoTours", () => {
     }
   });
 
-  it("totalPrice equals price * adults for adults=1", () => {
-    const tours = generateDemoTours("Москва", 80000, 1);
-    for (const tour of tours) {
-      expect(Math.abs(tour.totalPrice - tour.price * 1)).toBeLessThanOrEqual(1);
+  it.each([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])(
+    "totalPrice equals price * adults for adults=%i (full range 1-10)",
+    (adults) => {
+      const tours = generateDemoTours("Москва", 80000 * adults, adults);
+      for (const tour of tours) {
+        expect(Math.abs(tour.totalPrice - tour.price * adults)).toBeLessThanOrEqual(1);
+      }
     }
-  });
-
-  it("totalPrice equals price * adults for adults=4", () => {
-    const tours = generateDemoTours("Москва", 80000, 4);
-    for (const tour of tours) {
-      expect(Math.abs(tour.totalPrice - tour.price * 4)).toBeLessThanOrEqual(1);
-    }
-  });
-
-  it("totalPrice equals price * adults for adults=10", () => {
-    const tours = generateDemoTours("Москва", 80000, 10);
-    for (const tour of tours) {
-      expect(Math.abs(tour.totalPrice - tour.price * 10)).toBeLessThanOrEqual(1);
-    }
-  });
+  );
 
   it("tours are sorted by price ascending", () => {
     const tours = generateDemoTours("Москва", 80000, 2);
@@ -164,14 +153,14 @@ describe("generateTourDescription", () => {
     expect(result.aiDescription.length).toBeGreaterThan(10);
   }, 30000);
 
-  it("descriptions for indices 0, 1, 2 are all different", async () => {
+  it("all 3 descriptions (indices 0, 1, 2) are completely distinct", async () => {
     const [r0, r1, r2] = await Promise.all([
       generateTourDescription(mockTour, "Москва", 7, 0),
       generateTourDescription(mockTour, "Москва", 7, 1),
       generateTourDescription(mockTour, "Москва", 7, 2),
     ]);
     const unique = new Set([r0.aiDescription, r1.aiDescription, r2.aiDescription]);
-    expect(unique.size).toBeGreaterThan(1);
+    expect(unique.size).toBe(3);
   }, 60000);
 
   it("aiProvider is a non-empty string", async () => {

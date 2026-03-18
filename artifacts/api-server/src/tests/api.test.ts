@@ -215,6 +215,46 @@ describe("Tour search", () => {
     }
   }, 30000);
 
+  it("adults=6: totalPrice = price * 6", async () => {
+    const res = await request.post("/api/tours/search").send({
+      departureCity: "Москва", budget: 80000, adults: 6,
+    });
+    expect(res.status).toBe(200);
+    for (const t of res.body.tours) {
+      expect(Math.abs(t.totalPrice - t.price * 6)).toBeLessThanOrEqual(1);
+    }
+  }, 30000);
+
+  it("adults=7: totalPrice = price * 7", async () => {
+    const res = await request.post("/api/tours/search").send({
+      departureCity: "Москва", budget: 80000, adults: 7,
+    });
+    expect(res.status).toBe(200);
+    for (const t of res.body.tours) {
+      expect(Math.abs(t.totalPrice - t.price * 7)).toBeLessThanOrEqual(1);
+    }
+  }, 30000);
+
+  it("adults=8: totalPrice = price * 8", async () => {
+    const res = await request.post("/api/tours/search").send({
+      departureCity: "Москва", budget: 80000, adults: 8,
+    });
+    expect(res.status).toBe(200);
+    for (const t of res.body.tours) {
+      expect(Math.abs(t.totalPrice - t.price * 8)).toBeLessThanOrEqual(1);
+    }
+  }, 30000);
+
+  it("adults=9: totalPrice = price * 9", async () => {
+    const res = await request.post("/api/tours/search").send({
+      departureCity: "Москва", budget: 80000, adults: 9,
+    });
+    expect(res.status).toBe(200);
+    for (const t of res.body.tours) {
+      expect(Math.abs(t.totalPrice - t.price * 9)).toBeLessThanOrEqual(1);
+    }
+  }, 30000);
+
   it("adults=10 (max): totalPrice = price * 10", async () => {
     const res = await request.post("/api/tours/search").send({
       departureCity: "Москва", budget: 80000, adults: 10,
