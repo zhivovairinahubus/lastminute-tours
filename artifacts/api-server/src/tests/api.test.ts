@@ -205,6 +205,31 @@ describe("Tour search", () => {
     });
     expect(res.status).toBe(400);
   });
+
+  it("POST /api/tours/search with adults=10 (max) returns 200", async () => {
+    const res = await fetch(`${BASE_URL}/api/tours/search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ departureCity: "Москва", budget: 80000, adults: 10 }),
+    });
+    expect(res.status).toBe(200);
+    const data = await res.json() as { tours: Array<{ totalPrice: number; price: number }> };
+    for (const tour of data.tours) {
+      expect(Math.abs(tour.totalPrice - tour.price * 10)).toBeLessThanOrEqual(1);
+    }
+  }, 30000);
+
+  it("bookingUrl in search response starts with https://", () => {
+    for (const tour of toursResponse.tours) {
+      if (tour.bookingUrl) {
+        expect(tour.bookingUrl).toMatch(/^https:\/\//);
+      }
+    }
+  });
+
+  it("Response has dataSource field", () => {
+    expect(toursResponse).toHaveProperty("dataSource");
+  });
 });
 
 describe("Admin settings API", () => {
@@ -241,5 +266,97 @@ describe("Admin settings API", () => {
       body: JSON.stringify({ value: "" }),
     });
     expect(res.status).toBe(400);
+  });
+});
+
+describe("Auth API endpoints", () => {
+  it("GET /api/auth/user returns user: null when unauthenticated", async () => {
+    const res = await fetch(`${BASE_URL}/api/auth/user`);
+    expect(res.status).toBe(200);
+    const data = await res.json() as { user: unknown };
+    expect(data).toHaveProperty("user");
+    expect(data.user).toBeNull();
+  });
+
+  it("GET /api/auth/me returns user: null when unauthenticated", async () => {
+    const res = await fetch(`${BASE_URL}/api/auth/me`);
+    expect(res.status).toBe(200);
+    const data = await res.json() as { user: unknown };
+    expect(data).toHaveProperty("user");
+    expect(data.user).toBeNull();
+  });
+
+  it("GET /api/login redirects to OIDC provider", async () => {
+    const res = await fetch(`${BASE_URL}/api/login`, { redirect: "manual" });
+    expect([301, 302, 303, 307, 308]).toContain(res.status);
+    const location = res.headers.get("location") ?? "";
+    expect(location.length).toBeGreaterThan(0);
+  });
+
+  it("GET /api/auth/logout redirects when unauthenticated", async () => {
+    const res = await fetch(`${BASE_URL}/api/auth/logout`, { redirect: "manual" });
+    expect([301, 302, 303, 307, 308]).toContain(res.status);
+  });
+
+  it("GET /api/logout (original path) also redirects", async () => {
+    const res = await fetch(`${BASE_URL}/api/logout`, { redirect: "manual" });
+    expect([301, 302, 303, 307, 308]).toContain(res.status);
+  });
+});
+
+describe("Saved tours API (unauthenticated)", () => {
+  it("GET /api/user/saved-tours returns 401 when not logged in", async () => {
+    const res = await fetch(`${BASE_URL}/api/user/saved-tours`);
+    expect(res.status).toBe(401);
+    const data = await res.json() as Record<string, unknown>;
+    expect(data).toHaveProperty("error");
+  });
+
+  it("POST /api/user/saved-tours returns 401 when not logged in", async () => {
+    const res = await fetch(`${BASE_URL}/api/user/saved-tours`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tourId: "test-tour-123",
+        tourData: {
+          hotel: "Test Hotel",
+          destination: "Турция, Анталья",
+          country: "Турция",
+          city: "Анталья",
+          stars: 5,
+          departureDate: "25.03.2026",
+          nights: 7,
+          price: 45000,
+          totalPrice: 90000,
+          mealType: "Всё включено",
+        },
+      }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it("DELETE /api/user/saved-tours/any-id returns 401 when not logged in", async () => {
+    const res = await fetch(`${BASE_URL}/api/user/saved-tours/test-id`, {
+      method: "DELETE",
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it("POST /api/user/saved-tours with invalid tourData returns 401 (not logged in)", async () => {
+    const res = await fetch(`${BASE_URL}/api/user/saved-tours`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tourId: "", tourData: {} }),
+    });
+    expect(res.status).toBe(401);
+  });
+});
+
+describe("Search history API (unauthenticated)", () => {
+  it("GET /api/user/search-history returns 401 when not logged in", async () => {
+    const res = await fetch(`${BASE_URL}/api/user/search-history`);
+    expect(res.status).toBe(401);
+    const data = await res.json() as Record<string, unknown>;
+    expect(data).toHaveProperty("error");
   });
 });
