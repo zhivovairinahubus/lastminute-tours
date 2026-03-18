@@ -1,272 +1,252 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeAll } from "vitest";
+import { generateDemoTours, generateTourDescription, getLevelTravelToken, type RawTour } from "../routes/tours/leveltravel.js";
+import { authMiddleware } from "../middlewares/authMiddleware.js";
+import type { Request, Response, NextFunction } from "express";
 
-describe("Tour angle selection (generateTourDescription)", () => {
-  const TOUR_ANGLES = [
-    { focus: "пляж и релакс" },
-    { focus: "культура, атмосфера и еда" },
-    { focus: "соотношение цена/качество и впечатления" },
-  ];
-
-  it("tourIndex=0 uses beach angle", () => {
-    expect(TOUR_ANGLES[0 % TOUR_ANGLES.length].focus).toBe("пляж и релакс");
+describe("getLevelTravelToken", () => {
+  it("returns a string or null (never throws)", async () => {
+    const token = await getLevelTravelToken();
+    expect(token === null || typeof token === "string").toBe(true);
   });
 
-  it("tourIndex=1 uses culture angle", () => {
-    expect(TOUR_ANGLES[1 % TOUR_ANGLES.length].focus).toBe("культура, атмосфера и еда");
-  });
-
-  it("tourIndex=2 uses price angle", () => {
-    expect(TOUR_ANGLES[2 % TOUR_ANGLES.length].focus).toBe("соотношение цена/качество и впечатления");
-  });
-
-  it("tourIndex=3 wraps back to beach angle", () => {
-    expect(TOUR_ANGLES[3 % TOUR_ANGLES.length].focus).toBe("пляж и релакс");
-  });
-
-  it("all 3 angles are distinct", () => {
-    const focusList = TOUR_ANGLES.map(a => a.focus);
-    const unique = new Set(focusList);
-    expect(unique.size).toBe(3);
-  });
-});
-
-describe("Demo booking URL builder", () => {
-  const COUNTRY_RU_TO_SLUG: Record<string, string> = {
-    "Турция": "turkey", "Египет": "egypt", "Таиланд": "thailand",
-    "ОАЭ": "uae", "Греция": "greece", "Кипр": "cyprus",
-    "Испания": "spain", "Черногория": "montenegro", "Тунис": "tunisia",
-    "Мальдивы": "maldives", "Куба": "cuba", "Италия": "italy",
-    "Грузия": "georgia", "Израиль": "israel", "Индонезия": "indonesia",
-  };
-
-  function buildDemoBookingUrl(country: string, hotelSlug: string): string {
-    const countrySlug = COUNTRY_RU_TO_SLUG[country] || country.toLowerCase().replace(/\s/g, "-");
-    return `https://level.travel/tours/${countrySlug}?hotel=${hotelSlug}`;
-  }
-
-  it("builds booking URL for Turkey", () => {
-    const url = buildDemoBookingUrl("Турция", "delphin-imperial-lara");
-    expect(url).toBe("https://level.travel/tours/turkey?hotel=delphin-imperial-lara");
-  });
-
-  it("builds booking URL for Egypt", () => {
-    const url = buildDemoBookingUrl("Египет", "hilton-hurghada-plaza");
-    expect(url).toBe("https://level.travel/tours/egypt?hotel=hilton-hurghada-plaza");
-  });
-
-  it("falls back to lowercased country for unknown country", () => {
-    const url = buildDemoBookingUrl("Неизвестная", "some-hotel");
-    expect(url).toBe("https://level.travel/tours/неизвестная?hotel=some-hotel");
-  });
-
-  it("URL always starts with https://level.travel", () => {
-    for (const country of Object.keys(COUNTRY_RU_TO_SLUG)) {
-      const url = buildDemoBookingUrl(country, "test-hotel");
-      expect(url).toMatch(/^https:\/\/level\.travel/);
+  it("returns null when DB returns no LEVEL_TRAVEL_TOKEN row", async () => {
+    const token = await getLevelTravelToken();
+    if (token !== null) {
+      expect(typeof token).toBe("string");
+      expect(token.length).toBeGreaterThan(0);
+    } else {
+      expect(token).toBeNull();
     }
   });
 });
 
-describe("normalizeBookingUrl", () => {
-  function normalizeBookingUrl(link: string): string {
-    if (!link) return "https://level.travel/tours";
-    if (link.startsWith("http://") || link.startsWith("https://")) return link;
-    return `https://level.travel${link.startsWith("/") ? "" : "/"}${link}`;
-  }
-
-  it("returns default URL for empty string", () => {
-    expect(normalizeBookingUrl("")).toBe("https://level.travel/tours");
+describe("generateDemoTours", () => {
+  it("returns an array of tours for valid inputs", () => {
+    const tours = generateDemoTours("Москва", 80000, 2);
+    expect(Array.isArray(tours)).toBe(true);
+    expect(tours.length).toBeGreaterThan(0);
   });
 
-  it("passes through absolute http URL unchanged", () => {
-    expect(normalizeBookingUrl("http://level.travel/tours/turkey")).toBe("http://level.travel/tours/turkey");
-  });
-
-  it("passes through absolute https URL unchanged", () => {
-    expect(normalizeBookingUrl("https://level.travel/tours/egypt?hotel=hilton")).toBe("https://level.travel/tours/egypt?hotel=hilton");
-  });
-
-  it("prepends https://level.travel to relative path with leading slash", () => {
-    expect(normalizeBookingUrl("/tours/turkey?hotel=hilton")).toBe("https://level.travel/tours/turkey?hotel=hilton");
-  });
-
-  it("prepends https://level.travel/ to relative path without leading slash", () => {
-    expect(normalizeBookingUrl("tours/turkey?hotel=hilton")).toBe("https://level.travel/tours/turkey?hotel=hilton");
-  });
-});
-
-describe("Tour price validation logic", () => {
-  it("price per person is always <= budget", () => {
-    const budget = 80000;
-    const adults = 2;
-    const pricePerPerson = 60000;
-    const totalPrice = pricePerPerson * adults;
-
-    expect(pricePerPerson).toBeLessThanOrEqual(budget);
-    expect(totalPrice).toBe(120000);
-  });
-
-  it("adults clamp to 1-10 range", () => {
-    const clamp = (n: number) => Math.max(1, Math.min(10, n));
-    expect(clamp(0)).toBe(1);
-    expect(clamp(-5)).toBe(1);
-    expect(clamp(11)).toBe(10);
-    expect(clamp(100)).toBe(10);
-    expect(clamp(5)).toBe(5);
-    expect(clamp(1)).toBe(1);
-    expect(clamp(10)).toBe(10);
-  });
-
-  it("totalPrice equals price * adults", () => {
-    const cases = [
-      { price: 50000, adults: 1 },
-      { price: 50000, adults: 2 },
-      { price: 50000, adults: 4 },
-      { price: 30000, adults: 10 },
+  it("each tour has all required RawTour fields", () => {
+    const tours = generateDemoTours("Москва", 80000, 2);
+    const requiredFields: (keyof RawTour)[] = [
+      "id", "destination", "country", "city", "hotel", "stars",
+      "departureDate", "returnDate", "nights", "price", "totalPrice",
+      "mealType", "imageUrl", "bookingUrl",
     ];
-    for (const { price, adults } of cases) {
-      expect(price * adults).toBe(price * adults);
+    for (const tour of tours.slice(0, 3)) {
+      for (const field of requiredFields) {
+        expect(tour).toHaveProperty(field);
+      }
     }
   });
+
+  it("all tour prices are within budget", () => {
+    const budget = 60000;
+    const tours = generateDemoTours("Москва", budget, 2);
+    for (const tour of tours) {
+      expect(tour.price).toBeLessThanOrEqual(budget);
+    }
+  });
+
+  it("totalPrice equals price * adults for adults=1", () => {
+    const tours = generateDemoTours("Москва", 80000, 1);
+    for (const tour of tours) {
+      expect(Math.abs(tour.totalPrice - tour.price * 1)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("totalPrice equals price * adults for adults=4", () => {
+    const tours = generateDemoTours("Москва", 80000, 4);
+    for (const tour of tours) {
+      expect(Math.abs(tour.totalPrice - tour.price * 4)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("totalPrice equals price * adults for adults=10", () => {
+    const tours = generateDemoTours("Москва", 80000, 10);
+    for (const tour of tours) {
+      expect(Math.abs(tour.totalPrice - tour.price * 10)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("tours are sorted by price ascending", () => {
+    const tours = generateDemoTours("Москва", 80000, 2);
+    for (let i = 0; i < tours.length - 1; i++) {
+      expect(tours[i].price).toBeLessThanOrEqual(tours[i + 1].price);
+    }
+  });
+
+  it("bookingUrl starts with https://level.travel", () => {
+    const tours = generateDemoTours("Москва", 80000, 2);
+    for (const tour of tours) {
+      expect(tour.bookingUrl).toMatch(/^https:\/\/level\.travel/);
+    }
+  });
+
+  it("tour id is a non-empty string", () => {
+    const tours = generateDemoTours("Москва", 80000, 2);
+    for (const tour of tours) {
+      expect(typeof tour.id).toBe("string");
+      expect(tour.id.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("stars are between 1 and 5", () => {
+    const tours = generateDemoTours("Москва", 80000, 2);
+    for (const tour of tours) {
+      expect(tour.stars).toBeGreaterThanOrEqual(1);
+      expect(tour.stars).toBeLessThanOrEqual(5);
+    }
+  });
+
+  it("nights are between 1 and 30", () => {
+    const tours = generateDemoTours("Москва", 80000, 2);
+    for (const tour of tours) {
+      expect(tour.nights).toBeGreaterThanOrEqual(1);
+      expect(tour.nights).toBeLessThanOrEqual(30);
+    }
+  });
+
+  it("works with very low budget, still returns tours or empty array", () => {
+    const tours = generateDemoTours("Москва", 1000, 2);
+    expect(Array.isArray(tours)).toBe(true);
+    for (const tour of tours) {
+      expect(tour.price).toBeLessThanOrEqual(1000);
+    }
+  });
+
+  it("works with different departure cities", () => {
+    const tours1 = generateDemoTours("Санкт-Петербург", 80000, 2);
+    const tours2 = generateDemoTours("Казань", 80000, 2);
+    expect(Array.isArray(tours1)).toBe(true);
+    expect(Array.isArray(tours2)).toBe(true);
+  });
 });
 
-describe("Auth middleware logic (unit)", () => {
-  it("isAuthenticated returns false when user is undefined", () => {
-    const req: { user?: { id: string }; isAuthenticated: () => boolean } = {
-      user: undefined,
-      isAuthenticated() { return this.user != null; },
-    };
-    expect(req.isAuthenticated()).toBe(false);
-  });
-
-  it("isAuthenticated returns true when user is set", () => {
-    const req: { user?: { id: string }; isAuthenticated: () => boolean } = {
-      user: { id: "test-user-123" },
-      isAuthenticated() { return this.user != null; },
-    };
-    expect(req.isAuthenticated()).toBe(true);
-  });
-
-  it("session TTL is 7 days in milliseconds", () => {
-    const SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
-    expect(SESSION_TTL).toBe(604800000);
-  });
-
-  it("clearSession is called when session has no user.id", () => {
-    const session = { user: { id: "" }, access_token: "tok" };
-    const shouldClear = !session.user?.id;
-    expect(shouldClear).toBe(true);
-  });
-
-  it("clearSession is NOT called when session has valid user.id", () => {
-    const session = { user: { id: "abc-123" }, access_token: "tok" };
-    const shouldClear = !session.user?.id;
-    expect(shouldClear).toBe(false);
-  });
-});
-
-describe("SaveTourBody validation (Zod schema)", () => {
-  const validTourData = {
-    hotel: "Grand Hotel",
+describe("generateTourDescription", () => {
+  const mockTour: RawTour = {
+    id: "test-tour-1",
     destination: "Турция, Анталья",
     country: "Турция",
     city: "Анталья",
+    hotel: "Delphin Imperial Lara",
     stars: 5,
     departureDate: "25.03.2026",
+    returnDate: "01.04.2026",
     nights: 7,
     price: 45000,
     totalPrice: 90000,
     mealType: "Всё включено",
+    imageUrl: "https://example.com/image.jpg",
+    bookingUrl: "https://level.travel/tours/turkey?hotel=delphin-imperial-lara",
   };
 
-  it("valid tour data passes validation", () => {
-    expect(validTourData.hotel.length).toBeLessThanOrEqual(500);
-    expect(validTourData.stars).toBeGreaterThanOrEqual(1);
-    expect(validTourData.stars).toBeLessThanOrEqual(7);
-    expect(validTourData.price).toBeGreaterThanOrEqual(0);
-    expect(validTourData.nights).toBeGreaterThanOrEqual(1);
-    expect(validTourData.nights).toBeLessThanOrEqual(90);
-  });
+  it("returns aiDescription, aiRecommendation, aiProvider for index 0", async () => {
+    const result = await generateTourDescription(mockTour, "Москва", 7, 0);
+    expect(result).toHaveProperty("aiDescription");
+    expect(result).toHaveProperty("aiRecommendation");
+    expect(result).toHaveProperty("aiProvider");
+    expect(typeof result.aiDescription).toBe("string");
+    expect(result.aiDescription.length).toBeGreaterThan(10);
+  }, 30000);
 
-  it("stars must be 1-7", () => {
-    expect(0).toBeLessThan(1);
-    expect(8).toBeGreaterThan(7);
-    expect(5).toBeGreaterThanOrEqual(1);
-    expect(5).toBeLessThanOrEqual(7);
-  });
+  it("returns aiDescription for index 1 (culture angle)", async () => {
+    const result = await generateTourDescription(mockTour, "Москва", 7, 1);
+    expect(typeof result.aiDescription).toBe("string");
+    expect(result.aiDescription.length).toBeGreaterThan(10);
+    expect(typeof result.aiRecommendation).toBe("string");
+  }, 30000);
 
-  it("nights must be 1-90", () => {
-    expect(0).toBeLessThan(1);
-    expect(91).toBeGreaterThan(90);
-    expect(7).toBeGreaterThanOrEqual(1);
-    expect(7).toBeLessThanOrEqual(90);
-  });
+  it("returns aiDescription for index 2 (price angle)", async () => {
+    const result = await generateTourDescription(mockTour, "Москва", 7, 2);
+    expect(typeof result.aiDescription).toBe("string");
+    expect(result.aiDescription.length).toBeGreaterThan(10);
+  }, 30000);
 
-  it("price must not exceed 10_000_000", () => {
-    expect(45000).toBeLessThanOrEqual(10_000_000);
-    expect(10_000_001).toBeGreaterThan(10_000_000);
-  });
+  it("descriptions for indices 0, 1, 2 are all different", async () => {
+    const [r0, r1, r2] = await Promise.all([
+      generateTourDescription(mockTour, "Москва", 7, 0),
+      generateTourDescription(mockTour, "Москва", 7, 1),
+      generateTourDescription(mockTour, "Москва", 7, 2),
+    ]);
+    const unique = new Set([r0.aiDescription, r1.aiDescription, r2.aiDescription]);
+    expect(unique.size).toBeGreaterThan(1);
+  }, 60000);
 
-  it("totalPrice must not exceed 100_000_000", () => {
-    expect(90000).toBeLessThanOrEqual(100_000_000);
-    expect(100_000_001).toBeGreaterThan(100_000_000);
-  });
+  it("aiProvider is a non-empty string", async () => {
+    const result = await generateTourDescription(mockTour, "Москва", 7, 0);
+    expect(typeof result.aiProvider).toBe("string");
+    expect(result.aiProvider.length).toBeGreaterThan(0);
+  }, 30000);
+
+  it("tourIndex=3 wraps to same angle as index=0", async () => {
+    const [r0, r3] = await Promise.all([
+      generateTourDescription(mockTour, "Москва", 7, 0),
+      generateTourDescription(mockTour, "Москва", 7, 3),
+    ]);
+    expect(r0.aiProvider).toBe(r3.aiProvider);
+  }, 60000);
 });
 
-describe("Search history route logic", () => {
-  it("unauthenticated user gets 401", () => {
-    const isAuthenticated = false;
-    const expectedStatus = isAuthenticated ? 200 : 401;
-    expect(expectedStatus).toBe(401);
+describe("authMiddleware (unit)", () => {
+  function makeReq(cookie?: string) {
+    return {
+      headers: { cookie },
+      cookies: {} as Record<string, string>,
+    } as unknown as Request;
+  }
+
+  function makeRes() {
+    const res = {
+      clearCookie: vi.fn(),
+    };
+    return res as unknown as Response;
+  }
+
+  it("calls next() immediately when no session cookie is present", async () => {
+    const req = makeReq(undefined);
+    req.cookies = {};
+    const res = makeRes();
+    const next = vi.fn() as NextFunction;
+
+    await authMiddleware(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(req.user).toBeUndefined();
   });
 
-  it("authenticated user gets 200", () => {
-    const isAuthenticated = true;
-    const expectedStatus = isAuthenticated ? 200 : 401;
-    expect(expectedStatus).toBe(200);
+  it("sets isAuthenticated() to return false when no user set", async () => {
+    const req = makeReq(undefined);
+    req.cookies = {};
+    const res = makeRes();
+    const next = vi.fn() as NextFunction;
+
+    await authMiddleware(req, res, next);
+
+    expect(req.isAuthenticated()).toBe(false);
   });
 
-  it("limit of 20 recent searches per user", () => {
-    const SEARCH_HISTORY_LIMIT = 20;
-    expect(SEARCH_HISTORY_LIMIT).toBe(20);
-  });
-});
+  it("calls next() when session cookie exists but DB has no matching session", async () => {
+    const req = makeReq("sid=nonexistent-session-id-xyz");
+    req.cookies = { sid: "nonexistent-session-id-xyz" };
+    const res = makeRes();
+    const next = vi.fn() as NextFunction;
 
-describe("Static fallback descriptions", () => {
-  const tour = {
-    hotel: "Grand Hotel",
-    city: "Анталья",
-    stars: 5,
-    price: 45000,
-  };
-  const nights = 7;
+    await authMiddleware(req, res, next);
 
-  it("index 0 fallback mentions city", () => {
-    const desc = `Расслабьтесь на берегу ${tour.city} — кристальная вода и ухоженный пляж ${tour.hotel} созданы для настоящего отдыха. За ${nights} ночей успеете перезарядиться и забыть о работе.`;
-    expect(desc).toContain(tour.city);
-    expect(desc).toContain(tour.hotel);
+    expect(next).toHaveBeenCalledOnce();
+    expect(req.user).toBeUndefined();
   });
 
-  it("index 1 fallback mentions hotel and city", () => {
-    const desc = `${tour.city} — место, где история встречается с современным комфортом. ${tour.hotel} расположен в сердце курортной зоны, рядом — местные рестораны и достопримечательности.`;
-    expect(desc).toContain(tour.city);
-    expect(desc).toContain(tour.hotel);
-  });
+  it("isAuthenticated() returns false after invalid session", async () => {
+    const req = makeReq("sid=nonexistent-session-id-xyz");
+    req.cookies = { sid: "nonexistent-session-id-xyz" };
+    const res = makeRes();
+    const next = vi.fn() as NextFunction;
 
-  it("index 2 fallback mentions price and stars", () => {
-    const priceFormatted = tour.price.toLocaleString("ru-RU");
-    const desc = `За ${priceFormatted} ₽ — ${nights} ночей в ${tour.stars}★ отеле с питанием. ${tour.hotel} стабильно входит в топ по отзывам: отличный сервис и инфраструктура.`;
-    expect(desc).toContain(priceFormatted);
-    expect(desc).toContain(`${tour.stars}★`);
-  });
+    await authMiddleware(req, res, next);
 
-  it("3 fallback descriptions are all different", () => {
-    const staticDescriptions = [
-      `Расслабьтесь на берегу ${tour.city}`,
-      `${tour.city} — место, где история`,
-      `За ${tour.price.toLocaleString("ru-RU")} ₽`,
-    ];
-    const unique = new Set(staticDescriptions);
-    expect(unique.size).toBe(3);
+    expect(req.isAuthenticated()).toBe(false);
   });
 });

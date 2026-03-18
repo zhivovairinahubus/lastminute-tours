@@ -158,7 +158,7 @@ function addDaysToISO(isoDate: string, days: number): string {
   return date.toISOString().split("T")[0];
 }
 
-async function getLevelTravelToken(): Promise<string | null> {
+export async function getLevelTravelToken(): Promise<string | null> {
   try {
     const setting = await db.select()
       .from(settingsTable)
@@ -385,7 +385,7 @@ function buildDemoBookingUrl(country: string, hotelSlug: string): string {
   return `https://level.travel/tours/${countrySlug}?hotel=${hotelSlug}`;
 }
 
-function generateDemoTours(departureCityName: string, budget: number, adults: number): RawTour[] {
+export function generateDemoTours(departureCityName: string, budget: number, adults: number): RawTour[] {
   const allTours: RawTour[] = [];
   const countries = Object.keys(HOTELS_BY_COUNTRY);
   const shuffledCountries = shuffle(countries);

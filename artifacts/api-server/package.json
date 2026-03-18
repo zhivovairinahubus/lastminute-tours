@@ -29,7 +29,9 @@
     "@types/express": "^5.0.6",
     "@types/express-session": "^1.18.2",
     "@types/node": "catalog:",
+    "@types/supertest": "^7.2.0",
     "esbuild": "^0.27.3",
+    "supertest": "^7.2.2",
     "tsx": "catalog:",
     "vitest": "^3.2.0"
   }
