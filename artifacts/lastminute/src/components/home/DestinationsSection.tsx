@@ -68,12 +68,12 @@ const DESTINATIONS: Destination[] = [
     searchName: "Испания",
   },
   {
-    name: "Тбилиси",
-    country: "Грузия",
-    emoji: "🇬🇪",
-    fromPrice: 18000,
-    imageUrl: "https://images.unsplash.com/photo-1565008576549-57569a49371d?w=600&q=80",
-    searchName: "Грузия",
+    name: "Мале",
+    country: "Мальдивы",
+    emoji: "🇲🇻",
+    fromPrice: 95000,
+    imageUrl: "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=600&q=80",
+    searchName: "Мальдивы",
   },
 ];
 
