@@ -88,13 +88,16 @@ async function upsertUser(claims: Record<string, unknown>) {
   return user;
 }
 
-router.get("/auth/user", (req: Request, res: Response) => {
+function authUserHandler(req: Request, res: Response) {
   res.json(
     GetCurrentAuthUserResponse.parse({
       user: req.isAuthenticated() ? req.user : null,
     }),
   );
-});
+}
+
+router.get("/auth/user", authUserHandler);
+router.get("/auth/me", authUserHandler);
 
 router.get("/login", async (req: Request, res: Response) => {
   const config = await getOidcConfig();

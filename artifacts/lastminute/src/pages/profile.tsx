@@ -2,9 +2,14 @@ import { motion } from "framer-motion";
 import { useAuth } from "@workspace/replit-auth-web";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { User, Bookmark, LogOut, MapPin, Calendar, Star, ExternalLink, Loader2 } from "lucide-react";
+import {
+  User, Bookmark, LogOut, MapPin, Calendar, Star, ExternalLink,
+  Loader2, History, Search, Wallet, Users,
+} from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getApiUrl } from "@/lib/apiUrl";
+import { format, parseISO } from "date-fns";
+import { ru } from "date-fns/locale";
 
 interface SavedTour {
   userId: string;
@@ -26,6 +31,23 @@ interface SavedTour {
   };
 }
 
+interface SearchHistoryItem {
+  id: number;
+  userId: string;
+  departureCity: string;
+  budget: number;
+  adults: number;
+  searchedAt: string;
+}
+
+function formatDate(dateString: string) {
+  try {
+    return format(parseISO(dateString), "d MMM yyyy, HH:mm", { locale: ru });
+  } catch {
+    return dateString;
+  }
+}
+
 export default function ProfilePage() {
   const { user, isLoading: authLoading, isAuthenticated, logout } = useAuth();
   const queryClient = useQueryClient();
@@ -36,6 +58,16 @@ export default function ProfilePage() {
       const res = await fetch(getApiUrl("/user/saved-tours"), { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json() as Promise<{ savedTours: SavedTour[] }>;
+    },
+    enabled: isAuthenticated,
+  });
+
+  const { data: historyData, isLoading: historyLoading } = useQuery<{ searchHistory: SearchHistoryItem[] }>({
+    queryKey: ["search-history"],
+    queryFn: async () => {
+      const res = await fetch(getApiUrl("/user/search-history"), { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json() as Promise<{ searchHistory: SearchHistoryItem[] }>;
     },
     enabled: isAuthenticated,
   });
@@ -95,6 +127,7 @@ export default function ProfilePage() {
   }
 
   const savedTours = savedData?.savedTours ?? [];
+  const searchHistory = historyData?.searchHistory ?? [];
   const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Путешественник";
 
   return (
@@ -102,6 +135,7 @@ export default function ProfilePage() {
       <Navbar />
       <main className="flex-1 pt-28 pb-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+
           {/* Profile header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -133,7 +167,7 @@ export default function ProfilePage() {
           </motion.div>
 
           {/* Saved tours */}
-          <div>
+          <div className="mb-12">
             <div className="flex items-center gap-3 mb-6">
               <Bookmark className="w-6 h-6 text-primary" />
               <h2 className="text-2xl font-display font-bold">Сохранённые туры</h2>
@@ -145,11 +179,11 @@ export default function ProfilePage() {
             </div>
 
             {toursLoading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-7 h-7 text-primary animate-spin" />
               </div>
             ) : savedTours.length === 0 ? (
-              <div className="bg-white rounded-3xl p-12 border border-border text-center">
+              <div className="bg-white rounded-3xl p-10 border border-border text-center">
                 <Bookmark className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
                 <h3 className="text-xl font-bold mb-2">Нет сохранённых туров</h3>
                 <p className="text-muted-foreground mb-6">
@@ -229,6 +263,69 @@ export default function ProfilePage() {
               </div>
             )}
           </div>
+
+          {/* Search history */}
+          <div>
+            <div className="flex items-center gap-3 mb-6">
+              <History className="w-6 h-6 text-primary" />
+              <h2 className="text-2xl font-display font-bold">История поиска</h2>
+              {searchHistory.length > 0 && (
+                <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-bold">
+                  {searchHistory.length}
+                </span>
+              )}
+            </div>
+
+            {historyLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-7 h-7 text-primary animate-spin" />
+              </div>
+            ) : searchHistory.length === 0 ? (
+              <div className="bg-white rounded-3xl p-10 border border-border text-center">
+                <History className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                <h3 className="text-xl font-bold mb-2">Нет истории поиска</h3>
+                <p className="text-muted-foreground mb-6">
+                  История поиска будет появляться здесь после каждого запроса.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-border overflow-hidden shadow-sm">
+                {searchHistory.map((item, i) => (
+                  <motion.a
+                    key={item.id}
+                    href={import.meta.env.BASE_URL as string}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                    className={`flex items-center gap-5 px-6 py-4 hover:bg-secondary/40 transition-colors ${i > 0 ? "border-t border-border" : ""}`}
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <Search className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-sm text-foreground">
+                        {item.departureCity}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                        <span className="flex items-center gap-1">
+                          <Wallet className="w-3 h-3" />
+                          {item.budget.toLocaleString("ru-RU")} ₽/чел
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          {item.adults} {item.adults === 1 ? "человек" : item.adults < 5 ? "человека" : "человек"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground shrink-0">
+                      {formatDate(item.searchedAt)}
+                    </div>
+                  </motion.a>
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
       </main>
       <Footer />

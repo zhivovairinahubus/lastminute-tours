@@ -5,6 +5,7 @@ import searchRouter from "./tours/search.js";
 import adminSettingsRouter from "./admin/settings.js";
 import authRouter from "./auth.js";
 import savedToursRouter from "./user/savedTours.js";
+import searchHistoryRouter from "./user/searchHistory.js";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use("/tours/cities", citiesRouter);
 router.use("/tours/search", searchRouter);
 router.use("/admin/settings", adminSettingsRouter);
 router.use("/user/saved-tours", savedToursRouter);
+router.use("/user/search-history", searchHistoryRouter);
 
 export default router;

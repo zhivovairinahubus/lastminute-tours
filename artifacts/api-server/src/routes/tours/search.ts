@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { db, searchHistoryTable } from "@workspace/db";
 import { searchLevelTravelTours, generateTourDescription } from "./leveltravel.js";
 
 const router: IRouter = Router();
@@ -39,6 +40,13 @@ router.post("/", async (req, res) => {
         aiRecommendation,
         aiProvider,
       });
+    }
+
+    if (req.isAuthenticated()) {
+      const userId = (req.user as { id: string }).id;
+      db.insert(searchHistoryTable)
+        .values({ userId, departureCity, budget: budgetNum, adults: adultsNum })
+        .catch((err) => console.error("Failed to record search history:", err));
     }
 
     res.json({

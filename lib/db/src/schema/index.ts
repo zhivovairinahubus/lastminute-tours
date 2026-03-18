@@ -20,3 +20,4 @@
 export * from "./settings";
 export * from "./auth";
 export * from "./savedTours";
+export * from "./searchHistory";
