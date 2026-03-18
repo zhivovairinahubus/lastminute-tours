@@ -6,16 +6,12 @@ import type { Tour } from "@workspace/api-client-react/src/generated/api.schemas
 import { useAuth } from "@workspace/replit-auth-web";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { getApiUrl } from "@/lib/apiUrl";
 
 interface TourCardProps {
   tour: Tour;
   index: number;
   adults: number;
-}
-
-function getApiUrl(path: string) {
-  const base = import.meta.env.BASE_URL.replace(/\/+$/, "");
-  return `${base}/api${path}`;
 }
 
 export function TourCard({ tour, index, adults }: TourCardProps) {

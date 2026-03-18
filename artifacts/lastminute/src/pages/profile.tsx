@@ -4,6 +4,8 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { User, Bookmark, LogOut, MapPin, Calendar, Star, ExternalLink, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getApiUrl } from "@/lib/apiUrl";
+
 interface SavedTour {
   userId: string;
   tourId: string;
@@ -24,10 +26,6 @@ interface SavedTour {
   };
 }
 
-function getApiUrl(path: string) {
-  return `${import.meta.env.BASE_URL}api${path}`.replace(/\/\//g, "/");
-}
-
 export default function ProfilePage() {
   const { user, isLoading: authLoading, isAuthenticated, logout } = useAuth();
   const queryClient = useQueryClient();
@@ -37,7 +35,7 @@ export default function ProfilePage() {
     queryFn: async () => {
       const res = await fetch(getApiUrl("/user/saved-tours"), { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
-      return res.json();
+      return res.json() as Promise<{ savedTours: SavedTour[] }>;
     },
     enabled: isAuthenticated,
   });
@@ -83,7 +81,7 @@ export default function ProfilePage() {
               Войдите, чтобы сохранять туры и просматривать историю поиска.
             </p>
             <a
-              href={`${import.meta.env.BASE_URL}api/login?returnTo=${import.meta.env.BASE_URL}`}
+              href={getApiUrl(`/login?returnTo=${encodeURIComponent((import.meta.env.BASE_URL as string))}`)}
               className="inline-flex items-center gap-2 bg-primary text-white px-8 py-3 rounded-xl font-bold text-base hover:bg-primary/90 transition-colors shadow-lg shadow-primary/25"
             >
               <User className="w-5 h-5" />
@@ -157,7 +155,7 @@ export default function ProfilePage() {
                 <p className="text-muted-foreground mb-6">
                   Нажмите на закладку в карточке тура, чтобы сохранить его здесь.
                 </p>
-                <a href={import.meta.env.BASE_URL} className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-colors">
+                <a href={import.meta.env.BASE_URL as string} className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-colors">
                   Найти туры
                 </a>
               </div>
@@ -206,6 +204,7 @@ export default function ProfilePage() {
                           <div className="flex gap-2">
                             <button
                               onClick={() => removeMutation.mutate(saved.tourId)}
+                              disabled={removeMutation.isPending}
                               className="text-xs text-muted-foreground hover:text-red-500 transition-colors px-2 py-1 rounded-lg hover:bg-red-50"
                             >
                               Удалить

@@ -10,7 +10,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app: Express = express();
 
-app.use(cors({ credentials: true, origin: true }));
+app.use(
+  cors({
+    credentials: true,
+    origin:
+      process.env.NODE_ENV === "production"
+        ? process.env.ALLOWED_ORIGIN || false
+        : true,
+  }),
+);
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

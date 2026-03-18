@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { Plane, HelpCircle, User, LogOut, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@workspace/replit-auth-web";
+import { getApiUrl } from "@/lib/apiUrl";
 
 const scrollTo = (id: string) => {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
@@ -96,7 +97,7 @@ export function Navbar() {
             </div>
           ) : (
             <a
-              href={`${import.meta.env.BASE_URL}api/login?returnTo=${import.meta.env.BASE_URL}`}
+              href={getApiUrl(`/login?returnTo=${encodeURIComponent(import.meta.env.BASE_URL as string)}`)}
               className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-colors shadow-md shadow-primary/20"
             >
               <User className="w-4 h-4" />
@@ -137,7 +138,7 @@ export function Navbar() {
             </Link>
           ) : (
             <a
-              href={`${import.meta.env.BASE_URL}api/login?returnTo=${import.meta.env.BASE_URL}`}
+              href={getApiUrl(`/login?returnTo=${encodeURIComponent(import.meta.env.BASE_URL as string)}`)}
               className="p-2 rounded-lg text-primary hover:bg-primary/10 transition-colors"
             >
               <User className="w-5 h-5" />
