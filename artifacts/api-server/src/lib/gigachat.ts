@@ -27,6 +27,9 @@ interface GigaChatToken {
 let cachedToken: GigaChatToken | null = null;
 
 async function getGigaChatAuthKey(): Promise<string | null> {
+  if (process.env.GIGACHAT_KEY) {
+    return process.env.GIGACHAT_KEY;
+  }
   try {
     const setting = await db
       .select()
