@@ -104,7 +104,7 @@ pnpm --filter @workspace/lastminute run dev
 | 5 | Baseline MVP | ✅ Выполнено |
 | 6 | TESTS.md — тестирование | ✅ Выполнено |
 | 7 | IMPROVEMENTS.md — улучшения | ✅ Выполнено |
-| 8 | Скринкаст | 🔄 В процессе |
+| 8 | Скринкаст | ✅ Выполнено |
 
 ## Лицензия
 
