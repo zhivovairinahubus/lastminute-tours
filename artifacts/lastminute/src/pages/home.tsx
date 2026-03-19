@@ -4,7 +4,6 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/home/Hero";
 import { Results } from "@/components/home/Results";
-import { DestinationsSection } from "@/components/home/DestinationsSection";
 import { FaqSection } from "@/components/home/FaqSection";
 import { useSearchTours } from "@/hooks/use-tours";
 import {
@@ -38,7 +37,7 @@ const STEPS = [
     num: 4,
     icon: Star,
     title: "Читайте AI-описания",
-    desc: "GigaChat Pro пишет краткое саммари каждого тура: что увидите, стоит ли брать прямо сейчас.",
+    desc: "Нейросеть пишет краткое саммари каждого тура: что увидите, стоит ли брать прямо сейчас.",
     color: "bg-emerald-50 text-emerald-500",
   },
   {
@@ -61,7 +60,7 @@ const BENEFITS = [
   {
     icon: Brain,
     title: "AI-описания на русском",
-    desc: "GigaChat Pro генерирует живое описание каждого тура: что посмотреть, чего ожидать, стоит ли брать.",
+    desc: "Нейросеть генерирует живое описание каждого тура: что посмотреть, чего ожидать, стоит ли брать.",
     badge: "Умно",
     color: "from-indigo-500 to-purple-600",
   },
@@ -152,10 +151,6 @@ export default function Home() {
     );
   };
 
-  const handleDestinationClick = (_country: string) => {
-    document.getElementById("search")?.scrollIntoView({ behavior: "smooth" });
-  };
-
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -232,9 +227,6 @@ export default function Home() {
             </div>
           </div>
         </section>
-
-        {/* DESTINATIONS */}
-        <DestinationsSection onDestinationClick={handleDestinationClick} />
 
         {/* BENEFITS */}
         <section className="py-28 bg-slate-50" id="benefits">
