@@ -104,8 +104,8 @@ pnpm --filter @workspace/lastminute run dev
 | 5 | Baseline MVP | ✅ Выполнено |
 | 6 | TESTS.md — тестирование | ✅ Выполнено |
 | 7 | IMPROVEMENTS.md — улучшения | ✅ Выполнено |
-| 8 | Презентация загружена в attached_assets и по ссылке [https://disk.yandex.ru/i/CxA_zwpV8JGSWg] | ✅ Выполнено |
-| 9 | Скринкаст доступен по ссылке [https://disk.yandex.ru/i/Yk2Cu18afrpaxQ] | ✅ Выполнено |
+| 8 | Презентация загружена в attached_assets и [по ссылке](https://disk.yandex.ru/i/CxA_zwpV8JGSWg) | ✅ Выполнено |
+| 9 | Скринкаст доступен [по ссылке](https://disk.yandex.ru/i/Yk2Cu18afrpaxQ) | ✅ Выполнено |
 
 ## Лицензия
 
