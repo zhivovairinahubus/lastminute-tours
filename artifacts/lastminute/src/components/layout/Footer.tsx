@@ -34,7 +34,6 @@ export function Footer() {
               <li><a href="#" className="text-slate-300 hover:text-white transition-colors text-sm">Политика конфиденциальности</a></li>
               <li><a href="#" className="text-slate-300 hover:text-white transition-colors text-sm">Пользовательское соглашение</a></li>
               <li><Link href="/help" className="text-slate-300 hover:text-white transition-colors text-sm">Поддержка</Link></li>
-              <li><Link href="/admin/settings" className="text-slate-500 hover:text-slate-400 transition-colors text-xs">Настройки</Link></li>
             </ul>
           </div>
         </div>

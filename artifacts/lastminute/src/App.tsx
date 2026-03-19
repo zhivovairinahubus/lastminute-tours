@@ -7,7 +7,6 @@ import Home from "./pages/home";
 import HelpPage from "./pages/help";
 import ProfilePage from "./pages/profile";
 import BookingPage from "./pages/booking";
-import AdminSettings from "./pages/admin/settings";
 import NotFound from "./pages/not-found";
 
 const queryClient = new QueryClient({
@@ -26,7 +25,6 @@ function Router() {
       <Route path="/help" component={HelpPage} />
       <Route path="/profile" component={ProfilePage} />
       <Route path="/booking" component={BookingPage} />
-      <Route path="/admin/settings" component={AdminSettings} />
       <Route component={NotFound} />
     </Switch>
   );
