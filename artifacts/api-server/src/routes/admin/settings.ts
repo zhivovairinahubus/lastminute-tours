@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { settingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { isGigaChatConfigured } from "../../lib/gigachat.js";
 
 const router: IRouter = Router();
 
@@ -83,11 +84,14 @@ router.delete("/:key", async (req, res) => {
 
 router.get("/status", async (_req, res) => {
   try {
-    const settings = await db.select().from(settingsTable);
+    const [gigachatConfigured, settings] = await Promise.all([
+      isGigaChatConfigured(),
+      db.select().from(settingsTable),
+    ]);
     const map = Object.fromEntries(settings.map((s) => [s.key, !!s.value]));
     res.json({
-      gigachat: !!map["GIGACHAT_KEY"],
-      levelTravel: !!map["LEVEL_TRAVEL_TOKEN"],
+      gigachat: gigachatConfigured,
+      levelTravel: !!(map["LEVEL_TRAVEL_TOKEN"] || process.env.LEVEL_TRAVEL_TOKEN),
     });
   } catch {
     res.json({ gigachat: false, levelTravel: false });

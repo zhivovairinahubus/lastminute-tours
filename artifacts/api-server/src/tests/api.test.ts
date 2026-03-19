@@ -299,6 +299,16 @@ describe("Admin settings API", () => {
     expect(typeof res.body.levelTravel).toBe("boolean");
   });
 
+  it("GET /api/admin/settings/status returns gigachat:true when GIGACHAT_KEY env var is set", async () => {
+    const original = process.env.GIGACHAT_KEY;
+    process.env.GIGACHAT_KEY = "test-env-key";
+    const res = await request.get("/api/admin/settings/status");
+    expect(res.status).toBe(200);
+    expect(res.body.gigachat).toBe(true);
+    if (original === undefined) delete process.env.GIGACHAT_KEY;
+    else process.env.GIGACHAT_KEY = original;
+  });
+
   it("GET /api/admin/settings returns settings object", async () => {
     const res = await request.get("/api/admin/settings");
     expect(res.status).toBe(200);
